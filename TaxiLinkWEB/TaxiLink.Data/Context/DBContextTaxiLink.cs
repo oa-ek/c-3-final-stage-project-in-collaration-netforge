@@ -41,8 +41,7 @@ namespace TaxiLink.Data.Context
         {
             if (!optionsBuilder.IsConfigured)
             {
-                // "Server=." працює, якщо у тебе встановлено повний SQL Server. 
-                // Якщо LocalDB (стандарт зі студією), краще "(localdb)\\mssqllocaldb"
+
                 optionsBuilder.UseSqlServer("Server=.; Database=DBTaxi; Integrated Security=True; Encrypt=True; TrustServerCertificate=True")
                     .ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
             }
