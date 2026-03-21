@@ -28,7 +28,16 @@ namespace TaxiLink.Data.Repositories.Implementations
                 .Include(o => o.PaymentMethod)
                 .FirstOrDefaultAsync(o => o.Id == id);
         }
-
+       
+        public override async Task<IEnumerable<Order>> GetAllAsync()
+        {
+            return await _dbSet
+                .Include(o => o.User)           
+                .Include(o => o.Driver)         
+                    .ThenInclude(d => d.User)   
+                .Include(o => o.OrderStatus)   
+                .ToListAsync();
+        }
         public async Task<IEnumerable<Order>> GetOrdersByUserIdAsync(int userId)
         {
             return await _dbSet

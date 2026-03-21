@@ -9,6 +9,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TaxiLink.Data", "TaxiLink.D
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TaxiLink.Services", "TaxiLink.Services\TaxiLink.Services.csproj", "{A523FD98-E959-46A9-8032-6C671DD3DA5B}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TaxiLink.UI", "TaxiLink.UI\TaxiLink.UI.csproj", "{5BE1EE82-72A4-4AF6-AAE6-DA357E92A173}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -27,6 +29,10 @@ Global
 		{A523FD98-E959-46A9-8032-6C671DD3DA5B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A523FD98-E959-46A9-8032-6C671DD3DA5B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A523FD98-E959-46A9-8032-6C671DD3DA5B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5BE1EE82-72A4-4AF6-AAE6-DA357E92A173}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5BE1EE82-72A4-4AF6-AAE6-DA357E92A173}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5BE1EE82-72A4-4AF6-AAE6-DA357E92A173}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5BE1EE82-72A4-4AF6-AAE6-DA357E92A173}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
