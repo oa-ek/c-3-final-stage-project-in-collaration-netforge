@@ -1,0 +1,172 @@
+﻿@model TaxiLink.UI.Models.AdminViewModels.FleetPageViewModel
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="fw-bold">Автопарк</h2>
+    </div>
+    <button class="btn btn-primary px-4" onclick="openVehicleModal(0, false)" style="background-color: #1E3A8A;">
+        <i class="fas fa-plus me-2"></i> Додати авто
+    </button>
+</div>
+
+<div class="card border-0 shadow-sm p-4" style="border-radius: 15px;">
+    <table class="table align-middle">
+        <thead class="text-muted small uppercase">
+            <tr>
+                <th>ID</th>
+                <th>Фото</th>
+                <th>Модель</th>
+                <th>Водій</th>
+                <th>Номерний знак</th>
+                <th>Статус</th>
+                <th class="text-end">Дії</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var v in Model.Vehicles)
+            {
+                var photoPath = v.Photos?.FirstOrDefault()?.PhotoPath ?? "/img/default-car.png";
+                var isInsuranceValid = v.InsuranceExpiryDate.HasValue && v.InsuranceExpiryDate.Value > DateTime.Now;
+
+                <tr>
+                    <td class="fw-bold">#@v.Id</td>
+                    <td><img src="@photoPath" class="rounded" style="width: 60px; height: 40px; object-fit: cover;"></td>
+                    <td class="fw-bold">@v.Brand @v.Model</td>
+                    <td>@(v.Driver?.User?.FirstName ?? "N/A") @(v.Driver?.User?.LastName ?? "")</td>
+                    <td>@v.LicensePlate</td>
+                    <td>
+                        @if (isInsuranceValid)
+                        {
+                            <span class="badge-status status-completed">Активний</span>
+                        }
+                        else
+                        {
+                            <span class="badge-status status-cancelled">Страховка прострочена</span>
+                        }
+                    </td>
+                    <td class="text-end">
+                        <button onclick="openVehicleModal(@v.Id, true)" class="btn btn-link text-muted p-1"><i class="fas fa-eye"></i></button>
+                        <button onclick="openVehicleModal(@v.Id, false)" class="btn btn-link text-muted p-1"><i class="fas fa-pencil-alt"></i></button>
+                        <form asp-action="Delete" asp-route-id="@v.Id" method="post" class="d-inline" onsubmit="return confirm('Ви впевнені, що хочете видалити цей автомобіль з автопарку назавжди?');">
+                            <button type="submit" class="btn btn-link text-danger p-1"><i class="fas fa-trash"></i></button>
+                        </form>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+<div class="modal fade" id="vehicleModal" tabindex="-1">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
+            <form id="vehicleForm" asp-action="UpsertVehicle" method="post" enctype="multipart/form-data">
+                <input type="hidden" name="Id" id="v_Id" />
+                <input type="hidden" name="ExistingPhotoPath" id="v_ExistingPhotoPath" />
+
+                <div class="modal-body p-4">
+                    <h5 class="fw-bold mb-4" id="vehicleModalTitle">Автомобіль</h5>
+                    <div class="row g-4">
+                        <div class="col-md-4">
+                            <h6 class="text-primary small fw-bold">Характеристики</h6>
+                            <label class="small fw-bold text-muted">Марка</label>
+                            <input name="Brand" id="v_Brand" class="form-control bg-light border-0 mb-2" required />
+                            <label class="small fw-bold text-muted">Модель</label>
+                            <input name="Model" id="v_Model" class="form-control bg-light border-0 mb-2" required />
+                            <label class="small fw-bold text-muted">Рік випуску</label>
+                            <input name="Year" id="v_Year" type="number" class="form-control bg-light border-0 mb-2" required />
+                            <label class="small fw-bold text-muted">Колір</label>
+                            <input name="Color" id="v_Color" class="form-control bg-light border-0 mb-2" required />
+                        </div>
+                        <div class="col-md-4 border-start border-end px-4">
+                            <h6 class="text-primary small fw-bold">Документи та Призначення</h6>
+                            <label class="small fw-bold text-muted">Номерний знак</label>
+                            <input name="LicensePlate" id="v_LicensePlate" class="form-control bg-light border-0 mb-2" required />
+                            <label class="small fw-bold text-muted">Кількість пасажирських місць</label>
+                            <input name="PassengerSeats" id="v_PassengerSeats" type="number" class="form-control bg-light border-0 mb-2" required />
+                            <label class="small fw-bold text-muted">Дійсність страховки</label>
+                            <input name="InsuranceExpiryDate" id="v_InsuranceExpiryDate" type="date" class="form-control bg-light border-0 mb-2" />
+                            <label class="small fw-bold text-muted">Призначений Водій</label>
+                            <select name="DriverId" id="v_DriverId" class="form-select bg-light border-0 mb-2" asp-items="Model.Drivers" required>
+                                <option value="">-- Оберіть водія --</option>
+                            </select>
+                            <label class="small fw-bold text-muted mt-2">Фотографія авто</label>
+                            <input type="file" name="PhotoFile" accept="image/*" class="form-control bg-light border-0" />
+                        </div>
+                        <div class="col-md-4">
+                            <h6 class="text-primary small fw-bold">Класи та Послуги</h6>
+                            <label class="small fw-bold text-muted">Доступні класи (можна декілька)</label>
+                            <div class="bg-light p-2 rounded mb-3" style="max-height: 120px; overflow-y: auto;">
+                                @foreach (var c in Model.AvailableClasses)
+                                {
+                                    <div class="form-check small">
+                                        <input class="form-check-input v-class-check" type="checkbox" name="SelectedClassIds" value="@c.Id" id="cls_@c.Id">
+                                        <label class="form-check-label">@c.Name</label>
+                                    </div>
+                                }
+                            </div>
+
+                            <label class="small fw-bold text-muted">Додаткові послуги (можна декілька)</label>
+                            <div class="bg-light p-2 rounded" style="max-height: 120px; overflow-y: auto;">
+                                @foreach (var s in Model.AvailableServices)
+                                {
+                                    <div class="form-check small">
+                                        <input class="form-check-input v-srv-check" type="checkbox" name="SelectedServiceIds" value="@s.Id" id="vsrv_@s.Id">
+                                        <label class="form-check-label">@s.Name</label>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 p-4">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Закрити</button>
+                    <button type="submit" id="vehicleSaveBtn" class="btn btn-primary px-4" style="background-color: #1E3A8A;">Зберегти</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    function openVehicleModal(id, viewOnly) {
+        $('#vehicleForm')[0].reset();
+        $('#v_Id').val(id);
+        $('.v-class-check').prop('checked', false);
+        $('.v-srv-check').prop('checked', false);
+        $('#vehicleSaveBtn').show();
+        $('#vehicleForm input, #vehicleForm select').prop('disabled', false);
+
+        if (id === 0) {
+            $('#vehicleModalTitle').text('Додати новий автомобіль');
+        } else {
+            $.get('/Fleet/GetVehicleDetails/' + id, function(data) {
+                $('#v_DriverId').val(data.driverId);
+                $('#v_Brand').val(data.brand);
+                $('#v_Model').val(data.model);
+                $('#v_Year').val(data.year);
+                $('#v_Color').val(data.color);
+                $('#v_LicensePlate').val(data.licensePlate);
+                $('#v_PassengerSeats').val(data.passengerSeats);
+                if(data.insuranceExpiryDate) $('#v_InsuranceExpiryDate').val(data.insuranceExpiryDate.split('T')[0]);
+                $('#v_ExistingPhotoPath').val(data.existingPhotoPath);
+
+                if (data.selectedClassIds) {
+                    data.selectedClassIds.forEach(cid => $('#cls_' + cid).prop('checked', true));
+                }
+                if (data.selectedServiceIds) {
+                    data.selectedServiceIds.forEach(sid => $('#vsrv_' + sid).prop('checked', true));
+                }
+
+                if (viewOnly) {
+                    $('#vehicleModalTitle').text('Перегляд автомобіля');
+                    $('#vehicleSaveBtn').hide();
+                    $('#vehicleForm input, #vehicleForm select').prop('disabled', true);
+                } else {
+                    $('#vehicleModalTitle').text('Редагування автомобіля');
+                }
+            });
+        }
+        $('#vehicleModal').modal('show');
+    }
+</script>

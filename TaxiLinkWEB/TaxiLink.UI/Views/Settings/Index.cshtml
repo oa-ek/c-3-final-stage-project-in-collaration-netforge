@@ -1,0 +1,282 @@
+﻿@model TaxiLink.UI.Models.AdminViewModels.SettingsPageViewModel
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="fw-bold">Системні налаштування</h2>
+        <p class="text-muted">Керування містами, послугами та статусами</p>
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm p-4" style="border-radius: 15px;">
+    <ul class="nav nav-pills mb-4" id="settingsTabs">
+        <li class="nav-item">
+            <button class="nav-link active" data-bs-toggle="pill" data-bs-target="#cities">Міста</button>
+        </li>
+        <li class="nav-item ms-2">
+            <button class="nav-link" data-bs-toggle="pill" data-bs-target="#services">Додаткові послуги</button>
+        </li>
+        <li class="nav-item ms-2">
+            <button class="nav-link" data-bs-toggle="pill" data-bs-target="#statuses">Статуси замовлень</button>
+        </li>
+    </ul>
+
+    <div class="tab-content">
+        <div class="tab-pane fade show active" id="cities">
+            <div class="d-flex justify-content-end mb-3">
+                <button class="btn btn-primary" style="background-color: #1E3A8A;" onclick="openCityModal(0, false)">
+                    <i class="fas fa-plus me-2"></i> Додати місто
+                </button>
+            </div>
+            <table class="table align-middle">
+                <thead class="text-muted small uppercase">
+                    <tr>
+                        <th>ID</th>
+                        <th>Назва міста</th>
+                        <th>Ціновий множник</th>
+                        <th class="text-end">Дії</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var c in Model.Cities)
+                    {
+                        <tr>
+                            <td class="fw-bold">#@c.Id</td>
+                            <td class="fw-bold">@c.Name</td>
+                            <td>@c.PriceMultiplier x</td>
+                            <td class="text-end">
+                                <button onclick="openCityModal(@c.Id, true)" class="btn btn-link text-muted p-1"><i class="fas fa-eye"></i></button>
+                                <button onclick="openCityModal(@c.Id, false)" class="btn btn-link text-muted p-1"><i class="fas fa-pencil-alt"></i></button>
+                                <form asp-action="DeleteCity" asp-route-id="@c.Id" method="post" class="d-inline" onsubmit="return confirm('Видалити місто?');">
+                                    <button type="submit" class="btn btn-link text-danger p-1"><i class="fas fa-trash"></i></button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <div class="tab-pane fade" id="services">
+            <div class="d-flex justify-content-end mb-3">
+                <button class="btn btn-primary" style="background-color: #1E3A8A;" onclick="openServiceModal(0, false)">
+                    <i class="fas fa-plus me-2"></i> Додати послугу
+                </button>
+            </div>
+            <table class="table align-middle">
+                <thead class="text-muted small uppercase">
+                    <tr>
+                        <th>ID</th>
+                        <th>Назва послуги</th>
+                        <th>Додаткова ціна</th>
+                        <th>Тип</th>
+                        <th class="text-end">Дії</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var s in Model.AdditionalServices)
+                    {
+                        <tr>
+                            <td class="fw-bold">#@s.Id</td>
+                            <td class="fw-bold">@s.Name</td>
+                            <td>@s.Price @(s.IsPercentage ? "%" : "₴")</td>
+                            <td>
+                                @if (s.IsPercentage)
+                                {
+                                    <span class="badge-status status-progress">Відсоток</span>
+                                }
+                                else
+                                {
+
+                                    <span class="badge-status status-completed">Фіксована</span>
+                                }
+                            </td>
+                            <td class="text-end">
+                                <button onclick="openServiceModal(@s.Id, true)" class="btn btn-link text-muted p-1"><i class="fas fa-eye"></i></button>
+                                <button onclick="openServiceModal(@s.Id, false)" class="btn btn-link text-muted p-1"><i class="fas fa-pencil-alt"></i></button>
+                                <form asp-action="DeleteService" asp-route-id="@s.Id" method="post" class="d-inline" onsubmit="return confirm('Видалити послугу?');">
+                                    <button type="submit" class="btn btn-link text-danger p-1"><i class="fas fa-trash"></i></button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <div class="tab-pane fade" id="statuses">
+            <div class="d-flex justify-content-end mb-3">
+                <button class="btn btn-primary" style="background-color: #1E3A8A;" onclick="openStatusModal(0, false)">
+                    <i class="fas fa-plus me-2"></i> Додати статус
+                </button>
+            </div>
+            <table class="table align-middle">
+                <thead class="text-muted small uppercase">
+                    <tr>
+                        <th>ID</th>
+                        <th>Назва статусу</th>
+                        <th class="text-end">Дії</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var st in Model.OrderStatuses)
+                    {
+                        <tr>
+                            <td class="fw-bold">#@st.Id</td>
+                            <td class="fw-bold">@st.Name</td>
+                            <td class="text-end">
+                                <button onclick="openStatusModal(@st.Id, true)" class="btn btn-link text-muted p-1"><i class="fas fa-eye"></i></button>
+                                <button onclick="openStatusModal(@st.Id, false)" class="btn btn-link text-muted p-1"><i class="fas fa-pencil-alt"></i></button>
+                                <form asp-action="DeleteStatus" asp-route-id="@st.Id" method="post" class="d-inline" onsubmit="return confirm('Видалити статус?');">
+                                    <button type="submit" class="btn btn-link text-danger p-1"><i class="fas fa-trash"></i></button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="cityModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
+            <form id="cityForm" asp-action="UpsertCity" method="post">
+                <input type="hidden" name="Id" id="c_Id" />
+                <div class="modal-body p-4">
+                    <h5 class="fw-bold mb-4" id="cityModalTitle">Місто</h5>
+                    <label class="small fw-bold text-muted">Назва міста</label>
+                    <input name="Name" id="c_Name" class="form-control bg-light border-0 mb-3" required />
+                    <label class="small fw-bold text-muted">Ціновий множник (напр. 1,2)</label>
+                    <input name="PriceMultiplier" id="c_PriceMultiplier" type="text" class="form-control bg-light border-0 mb-2" required />
+                </div>
+                <div class="modal-footer border-0 p-4 pt-0">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Закрити</button>
+                    <button type="submit" id="citySaveBtn" class="btn btn-primary px-4" style="background-color: #1E3A8A;">Зберегти</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="serviceModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
+            <form id="serviceForm" asp-action="UpsertService" method="post">
+                <input type="hidden" name="Id" id="s_Id" />
+                <div class="modal-body p-4">
+                    <h5 class="fw-bold mb-4" id="serviceModalTitle">Послуга</h5>
+                    <label class="small fw-bold text-muted">Назва послуги</label>
+                    <input name="Name" id="s_Name" class="form-control bg-light border-0 mb-3" required />
+                    <label class="small fw-bold text-muted">Додаткова ціна</label>
+                    <input name="Price" id="s_Price" type="text" class="form-control bg-light border-0 mb-3" required />
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="IsPercentage" id="s_IsPercentage" value="true">
+                        <label class="form-check-label small fw-bold text-muted">Це відсоток від загальної вартості (не фіксована сума)</label>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 p-4 pt-0">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Закрити</button>
+                    <button type="submit" id="serviceSaveBtn" class="btn btn-primary px-4" style="background-color: #1E3A8A;">Зберегти</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="statusModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
+            <form id="statusForm" asp-action="UpsertStatus" method="post">
+                <input type="hidden" name="Id" id="st_Id" />
+                <div class="modal-body p-4">
+                    <h5 class="fw-bold mb-4" id="statusModalTitle">Статус замовлення</h5>
+                    <label class="small fw-bold text-muted">Назва статусу</label>
+                    <input name="Name" id="st_Name" class="form-control bg-light border-0 mb-2" required />
+                </div>
+                <div class="modal-footer border-0 p-4 pt-0">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Закрити</button>
+                    <button type="submit" id="statusSaveBtn" class="btn btn-primary px-4" style="background-color: #1E3A8A;">Зберегти</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    function openCityModal(id, viewOnly) {
+        $('#cityForm')[0].reset();
+        $('#c_Id').val(id);
+        $('#citySaveBtn').show();
+        $('#cityForm input').prop('disabled', false);
+
+        if (id === 0) {
+            $('#cityModalTitle').text('Додати місто');
+            $('#c_PriceMultiplier').val("1,0");
+        } else {
+            $.get('/Settings/GetCity/' + id, function(data) {
+                $('#c_Name').val(data.name);
+                $('#c_PriceMultiplier').val(data.priceMultiplier ? data.priceMultiplier.toString().replace('.', ',') : "1,0");
+
+                if (viewOnly) {
+                    $('#cityModalTitle').text('Перегляд міста');
+                    $('#citySaveBtn').hide();
+                    $('#cityForm input').prop('disabled', true);
+                } else {
+                    $('#cityModalTitle').text('Редагування міста');
+                }
+            });
+        }
+        $('#cityModal').modal('show');
+    }
+
+    function openServiceModal(id, viewOnly) {
+        $('#serviceForm')[0].reset();
+        $('#s_Id').val(id);
+        $('#serviceSaveBtn').show();
+        $('#serviceForm input').prop('disabled', false);
+
+        if (id === 0) {
+            $('#serviceModalTitle').text('Додати послугу');
+        } else {
+            $.get('/Settings/GetService/' + id, function(data) {
+                $('#s_Name').val(data.name);
+                $('#s_Price').val(data.price ? data.price.toString().replace('.', ',') : "0,0");
+                $('#s_IsPercentage').prop('checked', data.isPercentage);
+
+                if (viewOnly) {
+                    $('#serviceModalTitle').text('Перегляд послуги');
+                    $('#serviceSaveBtn').hide();
+                    $('#serviceForm input').prop('disabled', true);
+                } else {
+                    $('#serviceModalTitle').text('Редагування послуги');
+                }
+            });
+        }
+        $('#serviceModal').modal('show');
+    }
+
+    function openStatusModal(id, viewOnly) {
+        $('#statusForm')[0].reset();
+        $('#st_Id').val(id);
+        $('#statusSaveBtn').show();
+        $('#statusForm input').prop('disabled', false);
+
+        if (id === 0) {
+            $('#statusModalTitle').text('Додати статус');
+        } else {
+            $.get('/Settings/GetStatus/' + id, function(data) {
+                $('#st_Name').val(data.name);
+
+                if (viewOnly) {
+                    $('#statusModalTitle').text('Перегляд статусу');
+                    $('#statusSaveBtn').hide();
+                    $('#statusForm input').prop('disabled', true);
+                } else {
+                    $('#statusModalTitle').text('Редагування статусу');
+                }
+            });
+        }
+        $('#statusModal').modal('show');
+    }
+</script>
