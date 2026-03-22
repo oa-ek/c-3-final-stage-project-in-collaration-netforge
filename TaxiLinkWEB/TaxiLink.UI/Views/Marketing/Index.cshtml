@@ -1,0 +1,223 @@
+﻿@model TaxiLink.UI.Models.AdminViewModels.MarketingPageViewModel
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="fw-bold">Маркетинг</h2>
+        <p class="text-muted">Управління промокодами та новинами</p>
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm p-4" style="border-radius: 15px;">
+    <ul class="nav nav-pills mb-4" id="marketingTabs">
+        <li class="nav-item">
+            <button class="nav-link active" data-bs-toggle="pill" data-bs-target="#promocodes">Промокоди</button>
+        </li>
+        <li class="nav-item ms-2">
+            <button class="nav-link" data-bs-toggle="pill" data-bs-target="#newsitems">Новини</button>
+        </li>
+    </ul>
+
+    <div class="tab-content">
+        <div class="tab-pane fade show active" id="promocodes">
+            <div class="d-flex justify-content-end mb-3">
+                <button class="btn btn-primary" style="background-color: #1E3A8A;" onclick="openPromoModal(0, false)">
+                    <i class="fas fa-plus me-2"></i> Додати промокод
+                </button>
+            </div>
+            <table class="table align-middle">
+                <thead class="text-muted small uppercase">
+                    <tr>
+                        <th>ID</th>
+                        <th>Код</th>
+                        <th>Знижка</th>
+                        <th>Дійсний до</th>
+                        <th>Використання</th>
+                        <th>Статус</th>
+                        <th class="text-end">Дії</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var p in Model.PromoCodes)
+                    {
+                        bool isExpired = p.ExpiryDate < DateTime.Now;
+                        bool isExhausted = p.CurrentUses >= p.MaxUses;
+                        <tr>
+                            <td class="fw-bold">#@p.Id</td>
+                            <td class="fw-bold text-primary">@p.Code</td>
+                            <td>@p.DiscountPercentage%</td>
+                            <td>@p.ExpiryDate.ToString("yyyy-MM-dd")</td>
+                            <td>@p.CurrentUses / @p.MaxUses</td>
+                            <td>
+                                @if (isExpired)
+                                {
+                                    <span class="badge-status status-cancelled">Прострочено</span>
+                                }
+                                else if (isExhausted)
+                                {
+
+                                    <span class="badge-status status-cancelled">Вичерпано</span>
+                                }
+                                else
+                                {
+
+                                    <span class="badge-status status-completed">Активний</span>
+                                }
+                            </td>
+                            <td class="text-end">
+                                <button onclick="openPromoModal(@p.Id, true)" class="btn btn-link text-muted p-1"><i class="fas fa-eye"></i></button>
+                                <button onclick="openPromoModal(@p.Id, false)" class="btn btn-link text-muted p-1"><i class="fas fa-pencil-alt"></i></button>
+                                <form asp-action="DeletePromoCode" asp-route-id="@p.Id" method="post" class="d-inline" onsubmit="return confirm('Видалити промокод?');">
+                                    <button type="submit" class="btn btn-link text-danger p-1"><i class="fas fa-trash"></i></button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <div class="tab-pane fade" id="newsitems">
+            <div class="d-flex justify-content-end mb-3">
+                <button class="btn btn-primary" style="background-color: #1E3A8A;" onclick="openNewsModal(0, false)">
+                    <i class="fas fa-plus me-2"></i> Додати новину
+                </button>
+            </div>
+            <table class="table align-middle">
+                <thead class="text-muted small uppercase">
+                    <tr>
+                        <th>ID</th>
+                        <th>Фото</th>
+                        <th>Заголовок</th>
+                        <th>Дата публікації</th>
+                        <th>Статус</th>
+                        <th class="text-end">Дії</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var n in Model.NewsItems)
+                    {
+                        <tr>
+                            <td class="fw-bold">#@n.Id</td>
+                            <td><img src="@(string.IsNullOrEmpty(n.ImagePath) ? "/img/default-news.png" : n.ImagePath)" class="rounded" style="width: 50px; height: 50px; object-fit: cover;"></td>
+                            <td class="fw-bold">@n.Title</td>
+                            <td>@n.PublishedAt.ToString("yyyy-MM-dd")</td>
+                            <td><span class="badge-status status-completed">Опубліковано</span></td>
+                            <td class="text-end">
+                                <button onclick="openNewsModal(@n.Id, true)" class="btn btn-link text-muted p-1"><i class="fas fa-eye"></i></button>
+                                <button onclick="openNewsModal(@n.Id, false)" class="btn btn-link text-muted p-1"><i class="fas fa-pencil-alt"></i></button>
+                                <form asp-action="DeleteNewsItem" asp-route-id="@n.Id" method="post" class="d-inline" onsubmit="return confirm('Видалити новину?');">
+                                    <button type="submit" class="btn btn-link text-danger p-1"><i class="fas fa-trash"></i></button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="promoModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
+            <form id="promoForm" asp-action="UpsertPromoCode" method="post">
+                <input type="hidden" name="Id" id="p_Id" />
+                <div class="modal-body p-4">
+                    <h5 class="fw-bold mb-4" id="promoModalTitle">Промокод</h5>
+                    <label class="small fw-bold text-muted">Код</label>
+                    <input name="Code" id="p_Code" class="form-control bg-light border-0 mb-3" required />
+                    <label class="small fw-bold text-muted">Відсоток знижки (%)</label>
+                    <input name="DiscountPercentage" id="p_DiscountPercentage" type="text" class="form-control bg-light border-0 mb-3" required />
+                    <label class="small fw-bold text-muted">Термін дії до</label>
+                    <input name="ExpiryDate" id="p_ExpiryDate" type="date" class="form-control bg-light border-0 mb-3" required />
+                    <label class="small fw-bold text-muted">Максимальна кількість використань</label>
+                    <input name="MaxUses" id="p_MaxUses" type="number" class="form-control bg-light border-0 mb-2" required />
+                </div>
+                <div class="modal-footer border-0 p-4 pt-0">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Закрити</button>
+                    <button type="submit" id="promoSaveBtn" class="btn btn-primary px-4" style="background-color: #1E3A8A;">Зберегти</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="newsModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
+            <form id="newsForm" asp-action="UpsertNewsItem" method="post" enctype="multipart/form-data">
+                <input type="hidden" name="Id" id="n_Id" />
+                <input type="hidden" name="ImagePath" id="n_ImagePath" />
+                <div class="modal-body p-4">
+                    <h5 class="fw-bold mb-4" id="newsModalTitle">Новина</h5>
+                    <label class="small fw-bold text-muted">Заголовок</label>
+                    <input name="Title" id="n_Title" class="form-control bg-light border-0 mb-3" required />
+                    <label class="small fw-bold text-muted">Зображення</label>
+                    <input type="file" name="ImageFile" accept="image/*" class="form-control bg-light border-0 mb-3" />
+                    <label class="small fw-bold text-muted">Опис</label>
+                    <textarea name="Description" id="n_Description" class="form-control bg-light border-0 mb-2" rows="5" required></textarea>
+                </div>
+                <div class="modal-footer border-0 p-4 pt-0">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Закрити</button>
+                    <button type="submit" id="newsSaveBtn" class="btn btn-primary px-4" style="background-color: #1E3A8A;">Зберегти</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    function openPromoModal(id, viewOnly) {
+        $('#promoForm')[0].reset();
+        $('#p_Id').val(id);
+        $('#promoSaveBtn').show();
+        $('#promoForm input').prop('disabled', false);
+
+        if (id === 0) {
+            $('#promoModalTitle').text('Створити промокод');
+            $('#p_DiscountPercentage').val("10,0");
+        } else {
+            $.get('/Marketing/GetPromoCode/' + id, function(data) {
+                $('#p_Code').val(data.code);
+                $('#p_DiscountPercentage').val(data.discountPercentage ? data.discountPercentage.toString().replace('.', ',') : "0,0");
+                if(data.expiryDate) $('#p_ExpiryDate').val(data.expiryDate.split('T')[0]);
+                $('#p_MaxUses').val(data.maxUses);
+
+                if (viewOnly) {
+                    $('#promoModalTitle').text('Перегляд промокоду');
+                    $('#promoSaveBtn').hide();
+                    $('#promoForm input').prop('disabled', true);
+                } else {
+                    $('#promoModalTitle').text('Редагування промокоду');
+                }
+            });
+        }
+        $('#promoModal').modal('show');
+    }
+
+    function openNewsModal(id, viewOnly) {
+        $('#newsForm')[0].reset();
+        $('#n_Id').val(id);
+        $('#newsSaveBtn').show();
+        $('#newsForm input, #newsForm textarea').prop('disabled', false);
+
+        if (id === 0) {
+            $('#newsModalTitle').text('Додати новину');
+        } else {
+            $.get('/Marketing/GetNewsItem/' + id, function(data) {
+                $('#n_Title').val(data.title);
+                $('#n_ImagePath').val(data.imagePath);
+                $('#n_Description').val(data.description);
+
+                if (viewOnly) {
+                    $('#newsModalTitle').text('Перегляд новини');
+                    $('#newsSaveBtn').hide();
+                    $('#newsForm input, #newsForm textarea').prop('disabled', true);
+                } else {
+                    $('#newsModalTitle').text('Редагування новини');
+                }
+            });
+        }
+        $('#newsModal').modal('show');
+    }
+</script>
