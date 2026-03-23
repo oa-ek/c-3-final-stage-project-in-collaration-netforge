@@ -17,6 +17,7 @@ public class OrderController : Controller
     private readonly IGenericRepository<AdditionalService> _serviceRepo;
     private readonly IGenericRepository<OrderStatus> _statusRepo;
     private readonly IGenericRepository<Order> _orderBaseRepo;
+    private readonly IGenericRepository<OrderAdditionalService> _orderServicesLinkRepo; 
 
     public OrderController(
         IOrderService orderService,
@@ -27,7 +28,8 @@ public class OrderController : Controller
         IGenericRepository<PaymentMethod> payRepo,
         IGenericRepository<AdditionalService> serviceRepo,
         IGenericRepository<OrderStatus> statusRepo,
-        IGenericRepository<Order> orderBaseRepo)
+        IGenericRepository<Order> orderBaseRepo,
+        IGenericRepository<OrderAdditionalService> orderServicesLinkRepo)
     {
         _orderService = orderService;
         _userService = userService;
@@ -38,6 +40,7 @@ public class OrderController : Controller
         _serviceRepo = serviceRepo;
         _statusRepo = statusRepo;
         _orderBaseRepo = orderBaseRepo;
+        _orderServicesLinkRepo = orderServicesLinkRepo;
     }
 
     public async Task<IActionResult> Index()
@@ -64,10 +67,22 @@ public class OrderController : Controller
     }
 
     [HttpGet]
+    public async Task<IActionResult> GetCityMultiplier(int id)
+    {
+        var city = await _cityRepo.GetByIdAsync(id);
+        return Json(new { multiplier = city?.PriceMultiplier ?? 1m });
+    }
+
+    [HttpGet]
+    [HttpGet]
     public async Task<IActionResult> GetOrderDetails(int id)
     {
         var order = await _orderService.GetOrderFullDetailsAsync(id);
         if (order == null) return NotFound();
+
+        var city = await _cityRepo.GetByIdAsync(order.CityId);
+        var allLinks = await _orderServicesLinkRepo.GetAllAsync();
+        var serviceIds = allLinks.Where(s => s.OrderId == id).Select(s => s.AdditionalServiceId).ToList();
 
         return Json(new
         {
@@ -87,9 +102,10 @@ public class OrderController : Controller
                 clientPriceBonus = order.ClientPriceBonus,
                 totalPrice = order.TotalPrice,
                 orderStatusId = order.OrderStatusId,
-                clientComment = order.ClientComment
+                clientComment = order.ClientComment,
+                cityMultiplier = city?.PriceMultiplier ?? 1m
             },
-            serviceIds = order.OrderAdditionalServices.Select(s => s.AdditionalServiceId).ToList()
+            serviceIds = serviceIds 
         });
     }
 
@@ -101,34 +117,29 @@ public class OrderController : Controller
             var anyUser = (await _userService.GetAllUsersAsync()).FirstOrDefault();
             if (anyUser != null) order.UserId = anyUser.Id;
         }
+        decimal cityMultiplier = 1m;
+        var city = await _cityRepo.GetByIdAsync(order.CityId);
+        if (city != null) cityMultiplier = city.PriceMultiplier;
 
-        if (order.TotalPrice == 0)
+        decimal servicesPrice = 0;
+        if (SelectedServiceIds != null && SelectedServiceIds.Any())
         {
-            decimal servicesPrice = 0;
-            if (SelectedServiceIds != null && SelectedServiceIds.Any())
-            {
-                var allServices = await _serviceRepo.GetAllAsync();
-                servicesPrice = allServices.Where(s => SelectedServiceIds.Contains(s.Id)).Sum(s => s.Price);
-            }
-            order.TotalPrice = (order.Distance * 15) + order.ClientPriceBonus + servicesPrice;
+            var allServices = await _serviceRepo.GetAllAsync();
+            servicesPrice = allServices.Where(s => SelectedServiceIds.Contains(s.Id)).Sum(s => s.Price);
         }
+
+        order.TotalPrice = (order.Distance * 15m * cityMultiplier) + order.ClientPriceBonus + servicesPrice;
 
         if (order.Id == 0)
         {
             order.CreatedAt = DateTime.Now;
-
-            if (SelectedServiceIds != null && SelectedServiceIds.Any())
-            {
-                order.OrderAdditionalServices = SelectedServiceIds
-                    .Select(id => new OrderAdditionalService { AdditionalServiceId = id })
-                    .ToList();
-            }
-
             await _orderService.CreateOrderAsync(order);
+            await SaveOrderServicesAsync(order.Id, SelectedServiceIds); 
         }
         else
         {
             await _orderService.UpdateOrderAsync(order);
+            await SaveOrderServicesAsync(order.Id, SelectedServiceIds); 
         }
         return RedirectToAction(nameof(Index));
     }
@@ -139,9 +150,28 @@ public class OrderController : Controller
         var order = await _orderBaseRepo.GetByIdAsync(id);
         if (order != null)
         {
+            var links = (await _orderServicesLinkRepo.GetAllAsync()).Where(s => s.OrderId == id).ToList();
+            foreach (var l in links) _orderServicesLinkRepo.Delete(l);
+            await _orderServicesLinkRepo.SaveChangesAsync();
+
             _orderBaseRepo.Delete(order);
             await _orderBaseRepo.SaveChangesAsync();
         }
         return RedirectToAction(nameof(Index));
+    }
+    private async Task SaveOrderServicesAsync(int orderId, int[] serviceIds)
+    {
+        var oldServices = (await _orderServicesLinkRepo.GetAllAsync()).Where(s => s.OrderId == orderId).ToList();
+        foreach (var s in oldServices) _orderServicesLinkRepo.Delete(s);
+        await _orderServicesLinkRepo.SaveChangesAsync();
+
+        if (serviceIds != null && serviceIds.Any())
+        {
+            foreach (var sid in serviceIds)
+            {
+                await _orderServicesLinkRepo.AddAsync(new OrderAdditionalService { OrderId = orderId, AdditionalServiceId = sid });
+            }
+            await _orderServicesLinkRepo.SaveChangesAsync();
+        }
     }
 }
