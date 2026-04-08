@@ -1,17 +1,20 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
-using TaxiLink.Data.Repositories.Interfaces;
-using TaxiLink.Domain.Models;
-using TaxiLink.UI.Models;
-using TaxiLink.Services.Interfaces;
-using System.Linq;
-using System.Threading.Tasks;
-using System.IO;
 using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
+using TaxiLink.Data.Repositories.Interfaces;
+using TaxiLink.Domain.Models;
+using TaxiLink.Services.Interfaces;
+using TaxiLink.UI.Admin_areas.Models;
 
-namespace TaxiLink.UI.Controllers
+namespace TaxiLink.UI.Admin_areas.Controllers
 {
+    [Area("Admin")]
+    [Authorize(Roles = "Admin")]
     public class FleetController : Controller
     {
         private readonly IVehicleRepository _vehicleRepo;
@@ -61,7 +64,7 @@ namespace TaxiLink.UI.Controllers
             }
 
             var driverList = drivers.Select(d => new {
-                Id = d.Id,
+                d.Id,
                 FullName = users.FirstOrDefault(u => u.Id == d.UserId)?.FirstName + " " + users.FirstOrDefault(u => u.Id == d.UserId)?.LastName
             }).ToList();
 

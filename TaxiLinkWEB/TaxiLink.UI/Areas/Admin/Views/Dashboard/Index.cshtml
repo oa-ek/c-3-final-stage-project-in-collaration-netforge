@@ -1,0 +1,156 @@
+﻿@model TaxiLink.UI.Admin_areas.Models.AdminViewModels.DashboardViewModel
+
+@{
+    ViewData["Title"] = "Аналітика";
+}
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="fw-bold">Дашборд і Аналітика</h2>
+    <div>
+        <button class="btn btn-success me-2 px-3 shadow-sm" onclick="exportReport('excel')">
+            <i class="fas fa-file-excel me-2"></i> Завантажити Excel
+        </button>
+        <button class="btn btn-primary px-3 shadow-sm" onclick="exportReport('word')" style="background-color: #2b5797; border: none;">
+            <i class="fas fa-file-word me-2"></i> Завантажити Word
+        </button>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm p-4 text-center" style="border-radius: 15px; background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white;">
+            <h6 class="text-uppercase fw-bold opacity-75 mb-2">Дохід за період</h6>
+            <h2 class="fw-bold mb-0"><span id="valRevenue">0</span> ₴</h2>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm p-4 text-center" style="border-radius: 15px; background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); color: white;">
+            <h6 class="text-uppercase fw-bold opacity-75 mb-2">Замовлень</h6>
+            <h2 class="fw-bold mb-0" id="valOrders">0</h2>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm p-4 text-center" style="border-radius: 15px; background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); color: white;">
+            <h6 class="text-uppercase fw-bold opacity-75 mb-2">Середній чек</h6>
+            <h2 class="fw-bold mb-0"><span id="valAvg">0</span> ₴</h2>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm p-4 text-center" style="border-radius: 15px; background: linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%); color: white;">
+            <h6 class="text-uppercase fw-bold opacity-75 mb-2">Активні водії</h6>
+            <h2 class="fw-bold mb-0" id="valDrivers">0</h2>
+        </div>
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm p-4 mb-4" style="border-radius: 15px;">
+    <div class="row g-4 align-items-end">
+        <div class="col-md-4">
+            <label class="small fw-bold text-muted mb-2">Дата з:</label>
+            <input type="date" id="startDate" class="form-control form-control-lg bg-light border-0" value="@Model.StartDate.ToString("yyyy-MM-dd")">
+        </div>
+        <div class="col-md-4">
+            <label class="small fw-bold text-muted mb-2">Дата по:</label>
+            <input type="date" id="endDate" class="form-control form-control-lg bg-light border-0" value="@Model.EndDate.ToString("yyyy-MM-dd")">
+        </div>
+        <div class="col-md-4">
+            <button class="btn btn-dark w-100 btn-lg shadow-sm" onclick="loadCharts()" style="border-radius: 10px;">
+                <i class="fas fa-sync-alt me-2"></i> Оновити графіки
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-md-8">
+        <div class="card border-0 shadow-sm p-4" style="border-radius: 15px;">
+            <h6 class="fw-bold text-muted mb-4">Динаміка доходу (₴)</h6>
+            <canvas id="revenueChart" height="100"></canvas>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm p-4" style="border-radius: 15px; height: 100%;">
+            <h6 class="fw-bold text-muted mb-4">Статуси замовлень</h6>
+            <div style="position: relative; height: 300px; width: 100%;">
+                <canvas id="statusChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        let revenueChartInstance = null;
+        let statusChartInstance = null;
+
+        $(document).ready(function () {
+            loadCharts();
+        });
+
+        function loadCharts() {
+            let start = $('#startDate').val();
+            let end = $('#endDate').val();
+
+           $.get(`/Admin/Dashboard/GetDashboardData?startDate=${start}&endDate=${end}`, function (data) {
+                $('#valRevenue').text(data.kpi.totalRevenue.toLocaleString());
+                $('#valOrders').text(data.kpi.totalOrders);
+                $('#valAvg').text(data.kpi.averageCheck.toLocaleString());
+                $('#valDrivers').text(data.kpi.activeDrivers);
+                const revLabels = data.revenue.map(x => x.date);
+                const revData = data.revenue.map(x => x.amount);
+
+                if (revenueChartInstance) revenueChartInstance.destroy();
+                const ctxRev = document.getElementById('revenueChart').getContext('2d');
+                revenueChartInstance = new Chart(ctxRev, {
+                    type: 'line',
+                    data: {
+                        labels: revLabels,
+                        datasets: [{
+                            label: 'Дохід ₴',
+                            data: revData,
+                            borderColor: '#4facfe',
+                            backgroundColor: 'rgba(79, 172, 254, 0.2)',
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.4 
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: { legend: { display: false } }
+                    }
+                });
+                const statLabels = data.statuses.map(x => x.status);
+                const statData = data.statuses.map(x => x.count);
+
+                if (statusChartInstance) statusChartInstance.destroy();
+                const ctxStat = document.getElementById('statusChart').getContext('2d');
+                statusChartInstance = new Chart(ctxStat, {
+                    type: 'doughnut',
+                    data: {
+                        labels: statLabels,
+                        datasets: [{
+                            data: statData,
+                            backgroundColor: ['#43e97b', '#fa709a', '#f6d365', '#a18cd1'],
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false
+                    }
+                });
+            }).fail(function() {
+                alert("Не вдалося завантажити дані для графіків. Перевірте консоль браузера.");
+            });
+        }
+        function exportReport(type) {
+            let start = $('#startDate').val();
+            let end = $('#endDate').val();
+            let url = type === 'excel' ? '/Admin/Dashboard/ExportToExcel' : '/Admin/Dashboard/ExportToWord';
+            window.location.href = `${url}?startDate=${start}&endDate=${end}`;
+        }
+    </script>
+}
