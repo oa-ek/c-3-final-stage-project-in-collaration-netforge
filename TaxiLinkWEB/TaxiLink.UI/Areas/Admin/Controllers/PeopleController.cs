@@ -1,11 +1,14 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using TaxiLink.Data.Repositories.Interfaces;
 using TaxiLink.Domain.Models;
-using TaxiLink.UI.Models;
+using TaxiLink.UI.Admin_areas.Models;
 
-namespace TaxiLink.UI.Controllers
+namespace TaxiLink.UI.Admin_areas.Controllers
 {
+    [Area("Admin")]
+    [Authorize(Roles = "Admin")]
     public class PeopleController : Controller
     {
         private readonly IGenericRepository<User> _userRepo;

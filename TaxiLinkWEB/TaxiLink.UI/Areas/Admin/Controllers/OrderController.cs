@@ -1,13 +1,16 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using TaxiLink.Data.Repositories.Interfaces;
 using TaxiLink.Domain.Models;
 using TaxiLink.Services.Interfaces;
-using TaxiLink.UI.Models;
-using static TaxiLink.UI.Models.AdminViewModels;
-
+using TaxiLink.UI.Admin_areas.Models;
+using static TaxiLink.UI.Admin_areas.Models.AdminViewModels;
+[Area("Admin")]
+[Authorize(Roles = "Admin")]
 public class OrderController : Controller
 {
+
     private readonly IOrderService _orderService;
     private readonly IUserService _userService;
     private readonly IDriverService _driverService;

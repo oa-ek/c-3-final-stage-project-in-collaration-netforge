@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc.Rendering;
 using TaxiLink.Domain.Models;
 
-namespace TaxiLink.UI.Models
+namespace TaxiLink.UI.Admin_areas.Models
 {
     public class AdminViewModels
     {
@@ -70,6 +70,15 @@ namespace TaxiLink.UI.Models
         {
             public IEnumerable<PromoCode> PromoCodes { get; set; } = new List<PromoCode>();
             public IEnumerable<NewsItem> NewsItems { get; set; } = new List<NewsItem>();
+        }
+        public class DashboardViewModel
+        {
+            public int TotalOrders { get; set; }
+            public decimal TotalRevenue { get; set; }
+            public decimal AverageCheck { get; set; }
+            public int ActiveDrivers { get; set; }
+            public DateTime StartDate { get; set; }
+            public DateTime EndDate { get; set; }
         }
     }
 }

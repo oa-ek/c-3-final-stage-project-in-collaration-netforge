@@ -1,4 +1,4 @@
-namespace TaxiLink.UI.Models
+namespace TaxiLink.UI.Admin_areas.Models
 {
     public class ErrorViewModel
     {
