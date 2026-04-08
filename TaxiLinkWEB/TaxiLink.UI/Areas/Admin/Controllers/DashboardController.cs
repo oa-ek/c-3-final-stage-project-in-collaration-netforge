@@ -20,7 +20,6 @@ namespace TaxiLink.UI.Admin_areas.Controllers
     [Authorize(Roles = "Admin")]
     public class DashboardController : Controller
     {
-        // Змінили репозиторій на твій готовий сервіс
         private readonly IOrderService _orderService;
 
         public DashboardController(IOrderService orderService)
@@ -32,7 +31,6 @@ namespace TaxiLink.UI.Admin_areas.Controllers
         {
             var model = new DashboardViewModel
             {
-                // Ставимо дату з початку минулого року, щоб точно знайти всі твої тести
                 StartDate = new DateTime(DateTime.Now.Year - 1, 1, 1),
                 EndDate = DateTime.Now
             };
@@ -42,8 +40,6 @@ namespace TaxiLink.UI.Admin_areas.Controllers
         [HttpGet]
         public async Task<IActionResult> GetDashboardData(DateTime? startDate, DateTime? endDate)
         {
-            // Тепер викликаємо твій сервіс. Він під капотом використовує OrderRepository, 
-            // де вже прописано .Include(o => o.OrderStatus), тому статуси не будуть null!
             var ordersList = (await _orderService.GetAllOrdersAsync()).ToList();
 
             if (startDate.HasValue)
@@ -51,13 +47,11 @@ namespace TaxiLink.UI.Admin_areas.Controllers
             if (endDate.HasValue)
                 ordersList = ordersList.Where(o => o.CreatedAt.Date <= endDate.Value.Date).ToList();
 
-            // 1. KPI (Цифри для карток)
             var totalOrders = ordersList.Count;
             var totalRevenue = ordersList.Sum(o => o.TotalPrice);
             var averageCheck = totalOrders > 0 ? Math.Round(ordersList.Average(o => o.TotalPrice), 2) : 0;
             var activeDrivers = ordersList.Where(o => o.DriverId != null).Select(o => o.DriverId).Distinct().Count();
 
-            // 2. Графік прибутку
             var revenueByDate = ordersList
                 .GroupBy(o => o.CreatedAt.Date)
                 .OrderBy(g => g.Key)
@@ -67,7 +61,6 @@ namespace TaxiLink.UI.Admin_areas.Controllers
                 })
                 .ToList();
 
-            // 3. Графік статусів
             var ordersByStatus = ordersList
                 .GroupBy(o => o.OrderStatus?.Name ?? "Нове")
                 .Select(g => new {
@@ -134,25 +127,21 @@ namespace TaxiLink.UI.Admin_areas.Controllers
             if (startDate.HasValue) orders = orders.Where(o => o.CreatedAt.Date >= startDate.Value.Date).ToList();
             if (endDate.HasValue) orders = orders.Where(o => o.CreatedAt.Date <= endDate.Value.Date).ToList();
 
-            // Підрахунок показників
             int totalOrders = orders.Count;
             decimal totalRevenue = orders.Sum(o => o.TotalPrice);
             decimal avgCheck = totalOrders > 0 ? Math.Round(orders.Average(o => o.TotalPrice), 2) : 0;
             int activeDrivers = orders.Where(o => o.DriverId != null).Select(o => o.DriverId).Distinct().Count();
 
-            // Офіційний діловий шрифт
             string fontName = "Times New Roman";
 
             using (var stream = new MemoryStream())
             {
                 using (var document = DocX.Create(stream))
                 {
-                    // 1. Шапка документа (права сторона)
                     var header = document.InsertParagraph("ЗАТВЕРДЖЕНО\nАдміністрація сервісу TaxiLink\n" + DateTime.Now.ToString("«dd» MMMM yyyy р."));
                     header.Font(fontName).FontSize(12).Alignment = Alignment.right;
                     header.SpacingAfter(40);
 
-                    // 2. Головний заголовок
                     var title = document.InsertParagraph("ОФІЦІЙНИЙ ЗВІТ");
                     title.Font(fontName).FontSize(16).Bold().Alignment = Alignment.center;
 
@@ -160,19 +149,16 @@ namespace TaxiLink.UI.Admin_areas.Controllers
                     subtitle.Font(fontName).FontSize(14).Alignment = Alignment.center;
                     subtitle.SpacingAfter(20);
 
-                    // 3. Період (Курсив)
                     string startStr = startDate.HasValue ? startDate.Value.ToString("dd.MM.yyyy") : "початку роботи";
                     string endStr = endDate.HasValue ? endDate.Value.ToString("dd.MM.yyyy") : DateTime.Now.ToString("dd.MM.yyyy");
                     var period = document.InsertParagraph($"Звітний період: з {startStr} по {endStr}");
                     period.Font(fontName).FontSize(12).Italic().Alignment = Alignment.left;
                     period.SpacingAfter(20);
 
-                    // 4. Офіційна таблиця з даними
                     var table = document.InsertTable(4, 2);
-                    table.Design = TableDesign.LightGrid; // Строгий стиль таблиці
+                    table.Design = TableDesign.LightGrid;
                     table.Alignment = Alignment.center;
 
-                    // Заповнюємо рядки (Текст - зліва, Цифри - справа жирним)
                     table.Rows[0].Cells[0].Paragraphs.First().Append("Загальна кількість виконаних замовлень:").Font(fontName).FontSize(12);
                     table.Rows[0].Cells[1].Paragraphs.First().Append($"{totalOrders} шт.").Font(fontName).FontSize(12).Bold();
 
@@ -185,16 +171,14 @@ namespace TaxiLink.UI.Admin_areas.Controllers
                     table.Rows[3].Cells[0].Paragraphs.First().Append("Кількість унікальних водіїв на лінії:").Font(fontName).FontSize(12);
                     table.Rows[3].Cells[1].Paragraphs.First().Append($"{activeDrivers} осіб").Font(fontName).FontSize(12).Bold();
 
-                    // Робимо таблицю трохи ширшою для краси
                     foreach (var row in table.Rows)
                     {
                         row.Cells[0].Width = 350;
                         row.Cells[1].Width = 150;
                     }
 
-                    document.InsertParagraph("").SpacingAfter(40); // Відступ після таблиці
+                    document.InsertParagraph("").SpacingAfter(40); 
 
-                    // 5. Місця для підписів
                     var footer1 = document.InsertParagraph("Генеральний директор     _________________   / ____________ /");
                     footer1.Font(fontName).FontSize(12);
                     footer1.SpacingAfter(20);
@@ -203,14 +187,12 @@ namespace TaxiLink.UI.Admin_areas.Controllers
                     footer2.Font(fontName).FontSize(12);
                     footer2.SpacingAfter(10);
 
-                    // 6. Імітація печатки
                     var stamp = document.InsertParagraph("М.П.");
                     stamp.Font(fontName).FontSize(12).Bold().Alignment = Alignment.left;
 
                     document.Save();
                 }
 
-                // Файл тепер матиме назву типу TaxiLink_Official_Report_07_04_2026.docx
                 return File(stream.ToArray(), "application/vnd.openxmlformats-officedocument.wordprocessingml.document", $"TaxiLink_Official_Report_{DateTime.Now:dd_MM_yyyy}.docx");
             }
         }
