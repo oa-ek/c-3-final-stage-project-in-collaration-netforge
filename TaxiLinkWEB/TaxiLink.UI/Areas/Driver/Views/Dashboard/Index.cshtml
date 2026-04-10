@@ -1,0 +1,168 @@
+﻿@model TaxiLink.Domain.Models.Driver
+@{
+    ViewData["Title"] = "Робочий стіл";
+    Layout = "~/Areas/Driver/Views/Shared/_DriverLayout.cshtml";
+}
+
+<style>
+    .dashboard-wrapper {
+        display: flex;
+        flex-direction: column;
+        height: calc(100vh - 100px);
+        gap: 20px;
+        width: 100%;
+    }
+
+    .dashboard-content {
+        display: flex;
+        flex-direction: row;
+        flex: 1;
+        gap: 20px;
+        min-height: 0;
+    }
+
+    .map-section {
+        flex: 1;
+        border-radius: 20px;
+        position: relative;
+        overflow: hidden;
+        background: #1e293b;
+        border: 1px solid rgba(255,255,255,0.05);
+        display: flex;
+        flex-direction: column;
+    }
+
+    .stats-section {
+        width: 300px;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+        overflow-y: auto;
+    }
+
+    @@keyframes pulse {
+        0% {
+            transform: scale(1);
+            box-shadow: 0 0 0 0 rgba(250, 204, 21, 0.7);
+        }
+
+        70% {
+            transform: scale(1.2);
+            box-shadow: 0 0 0 15px rgba(250, 204, 21, 0);
+        }
+
+        100% {
+            transform: scale(1);
+            box-shadow: 0 0 0 0 rgba(250, 204, 21, 0);
+        }
+    }
+
+    .custom-car-marker {
+        width: 20px;
+        height: 20px;
+        background: #FFCC00;
+        border-radius: 50%;
+        border: 3px solid #1e293b;
+        box-shadow: 0 0 15px rgba(255, 204, 0, 0.8);
+    }
+</style>
+
+<div class="dashboard-wrapper">
+
+    @if (!Model.IsVerified)
+    {
+        <div class="alert alert-warning d-flex align-items-center m-0" style="background: rgba(250, 204, 21, 0.1); border: 1px solid rgba(250, 204, 21, 0.2); color: var(--accent-yellow); border-radius: 12px; padding: 15px 20px; flex-shrink: 0;">
+            <i class="fa-solid fa-circle-exclamation me-3 fs-5"></i>
+            <div>Будь ласка, заповніть необхідні дані у профілі. Після їх верифікації ви зможете приймати замовлення.</div>
+        </div>
+    }
+
+    <div class="dashboard-content">
+        <div class="map-section glass-card p-0">
+            <div id="map" style="width: 100%; height: 100%; flex: 1;"></div>
+
+            @if (!Model.IsVerified)
+            {
+                <div id="unverified-overlay" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(18, 24, 38, 0.5); display: flex; align-items: center; justify-content: center; z-index: 1000;">
+                    <div style="width: 20px; height: 20px; background: var(--accent-yellow); border-radius: 50%; box-shadow: 0 0 20px var(--accent-yellow); animation: pulse 2s infinite;"></div>
+                </div>
+            }
+            else
+            {
+                <div style="position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: rgba(30, 35, 45, 0.9); backdrop-filter: blur(10px); padding: 15px 25px; border-radius: 15px; border: 1px solid rgba(255,255,255,0.1); z-index: 1000; display: flex; gap: 20px; align-items: center; box-shadow: 0 10px 25px rgba(0,0,0,0.5);">
+                    <div style="width: 12px; height: 12px; background: #10b981; border-radius: 50%; box-shadow: 0 0 10px #10b981;"></div>
+                    <span style="font-weight: 600; color: white;">Очікування замовлень...</span>
+                </div>
+            }
+
+            <div class="bottom-dock">
+                <a href="/Driver/Dashboard/Index" class="dock-btn active" style="opacity: @(!Model.IsVerified ? "0.5" : "1"); pointer-events: @(!Model.IsVerified ? "none" : "auto");">Карта</a>
+                <a href="/Driver/Dashboard/Orders" class="dock-btn" style="opacity: @(!Model.IsVerified ? "0.5" : "1"); pointer-events: @(!Model.IsVerified ? "none" : "auto");">Замовлення</a>
+                <a href="/Driver/Dashboard/Work" class="dock-btn" style="opacity: @(!Model.IsVerified ? "0.5" : "1"); pointer-events: @(!Model.IsVerified ? "none" : "auto");">Робота</a>
+            </div>
+        </div>
+
+        <div class="stats-section">
+            <div class="glass-card" style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative;">
+                <div style="position: absolute; top: 20px; left: 20px; font-weight: 600; font-size: 14px;">Відсоток прийняття</div>
+                <div style="width: 130px; height: 130px; border-radius: 50%; background: conic-gradient(#10b981 @(Model.AcceptanceRate)%, #334155 0); display: flex; align-items: center; justify-content: center; position: relative; margin-top: 20px;">
+                    <div style="width: 110px; height: 110px; background: var(--card-bg); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 800; color: #10b981;">
+                        @(Model.AcceptanceRate)%
+                    </div>
+                </div>
+                @if (!Model.IsVerified)
+                {
+                    <div style="position: absolute; width: 100%; height: 100%; background: rgba(26, 33, 48, 0.6); top: 0; left: 0; border-radius: 20px;"></div>
+                }
+            </div>
+
+            <div class="glass-card" style="flex: 1; position: relative;">
+                <div style="font-weight: 600; font-size: 14px; margin-bottom: 10px;">Баланс гаманця</div>
+                <div style="font-size: 32px; font-weight: 800;">@Model.WalletBalance ₴</div>
+                <div style="position: absolute; bottom: 20px; right: 20px; width: 40px; height: 40px; background: rgba(250, 204, 21, 0.1); border-radius: 10px; display: flex; align-items: center; justify-content: center; color: var(--accent-yellow);"><i class="fa-solid fa-wallet"></i></div>
+            </div>
+
+            <div class="glass-card" style="flex: 1; position: relative;">
+                <div style="font-weight: 600; font-size: 14px; margin-bottom: 10px;">Комісія сервісу</div>
+                <div style="font-size: 32px; font-weight: 800;">@Model.CommissionRate%</div>
+                <div style="position: absolute; bottom: 20px; right: 20px; width: 40px; height: 40px; background: rgba(239, 68, 68, 0.1); border-radius: 10px; display: flex; align-items: center; justify-content: center; color: #ef4444;"><i class="fa-solid fa-percent"></i></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            var container = L.DomUtil.get('map');
+            if(container != null){
+                container._leaflet_id = null;
+            }
+            setTimeout(() => {
+                var isUnverified = @((!Model.IsVerified).ToString().ToLower());
+
+                var map = L.map('map', {
+                    zoomControl: !isUnverified,
+                    dragging: !isUnverified,
+                    scrollWheelZoom: !isUnverified
+                }).setView([50.4501, 30.5234], 14);
+
+                L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                    attribution: '&copy; OpenStreetMap'
+                }).addTo(map);
+
+                if (!isUnverified) {
+                    var carIcon = L.divIcon({
+                        className: 'custom-car-marker',
+                        html: '<div style="width: 20px; height: 20px; background: #FFCC00; border-radius: 50%; border: 3px solid #1e293b; box-shadow: 0 0 15px rgba(255, 204, 0, 0.8);"></div>',
+                        iconSize: [20, 20],
+                        iconAnchor: [10, 10]
+                    });
+                    L.marker([50.4501, 30.5234], {icon: carIcon}).addTo(map);
+                }
+
+                map.invalidateSize();
+            }, 500);
+        });
+    </script>
+}

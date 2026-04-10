@@ -1,134 +1,141 @@
 ﻿@model TaxiLink.UI.Admin_areas.Models.AdminViewModels.FleetPageViewModel
 
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <div>
-        <h2 class="fw-bold">Автопарк</h2>
+@{
+    ViewData["Title"] = "Автопарк";
+}
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h4 class="card-title">Автопарк</h4>
+                <button class="btn btn-sm btn-info" onclick="openVehicleModal(0, false)">Додати авто</button>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Фото</th>
+                                <th>Модель</th>
+                                <th>Водій</th>
+                                <th>Номер</th>
+                                <th>Статус</th>
+                                <th class="text-end">Дії</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var v in Model.Vehicles)
+                            {
+                                var photoPath = v.Photos?.FirstOrDefault()?.PhotoPath ?? "/img/default-car.png";
+                                var isInsuranceValid = v.InsuranceExpiryDate.HasValue && v.InsuranceExpiryDate.Value > DateTime.Now;
+                                <tr>
+                                    <td>#@v.Id</td>
+                                    <td>
+                                        <img src="@photoPath" class="rounded" style="width: 60px; height: 40px; object-fit: cover;">
+                                        @if (v.Photos?.Count > 1)
+                                        {
+                                            <span class="badge bg-secondary ms-1">+@(v.Photos.Count - 1)</span>
+                                        }
+                                    </td>
+                                    <td class="text-start fw-bold">@v.Brand @v.Model</td>
+                                    <td>@(v.Driver?.User?.FirstName ?? "Не призначено")</td>
+                                    <td><span class="badge bg-light text-dark">@v.LicensePlate</span></td>
+                                    <td>
+                                        <span class="badge @(isInsuranceValid ? "bg-success" : "bg-danger")">
+                                            @(isInsuranceValid ? "Активний" : "Страховка прострочена")
+                                        </span>
+                                    </td>
+                                    <td class="text-end">
+                                        <button onclick="openVehicleModal(@v.Id, true)" class="btn btn-link btn-sm text-info"><i class="fas fa-eye"></i></button>
+                                        <button onclick="openVehicleModal(@v.Id, false)" class="btn btn-link btn-sm text-warning"><i class="fas fa-pencil-alt"></i></button>
+                                        <form asp-action="DeleteVehicle" asp-route-id="@v.Id" method="post" class="d-inline">
+                                            <button type="submit" class="btn btn-link btn-sm text-danger"><i class="fas fa-trash"></i></button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
     </div>
-    <button class="btn btn-primary px-4" onclick="openVehicleModal(0, false)" style="background-color: #1E3A8A;">
-        <i class="fas fa-plus me-2"></i> Додати авто
-    </button>
-</div>
-
-<div class="card border-0 shadow-sm p-4" style="border-radius: 15px;">
-    <table class="table align-middle">
-        <thead class="text-muted small uppercase">
-            <tr>
-                <th>ID</th>
-                <th>Фото</th>
-                <th>Модель</th>
-                <th>Водій</th>
-                <th>Номерний знак</th>
-                <th>Статус</th>
-                <th class="text-end">Дії</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var v in Model.Vehicles)
-            {
-                var photoPath = v.Photos?.FirstOrDefault()?.PhotoPath ?? "/img/default-car.png";
-                var isInsuranceValid = v.InsuranceExpiryDate.HasValue && v.InsuranceExpiryDate.Value > DateTime.Now;
-
-                <tr>
-                    <td class="fw-bold">#@v.Id</td>
-                    <td><img src="@photoPath" class="rounded" style="width: 60px; height: 40px; object-fit: cover;"></td>
-                    <td class="fw-bold">@v.Brand @v.Model</td>
-                    <td>@(v.Driver?.User?.FirstName ?? "N/A") @(v.Driver?.User?.LastName ?? "")</td>
-                    <td>@v.LicensePlate</td>
-                    <td>
-                        @if (isInsuranceValid)
-                        {
-                            <span class="badge-status status-completed">Активний</span>
-                        }
-                        else
-                        {
-                            <span class="badge-status status-cancelled">Страховка прострочена</span>
-                        }
-                    </td>
-                    <td class="text-end">
-                        <button onclick="openVehicleModal(@v.Id, true)" class="btn btn-link text-muted p-1"><i class="fas fa-eye"></i></button>
-                        <button onclick="openVehicleModal(@v.Id, false)" class="btn btn-link text-muted p-1"><i class="fas fa-pencil-alt"></i></button>
-                        <form asp-action="Delete" asp-route-id="@v.Id" method="post" class="d-inline" onsubmit="return confirm('Ви впевнені, що хочете видалити цей автомобіль з автопарку назавжди?');">
-                            <button type="submit" class="btn btn-link text-danger p-1"><i class="fas fa-trash"></i></button>
-                        </form>
-                    </td>
-                </tr>
-            }
-        </tbody>
-    </table>
 </div>
 
 <div class="modal fade" id="vehicleModal" tabindex="-1">
     <div class="modal-dialog modal-xl modal-dialog-centered">
-        <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
+        <div class="modal-content">
             <form id="vehicleForm" asp-action="UpsertVehicle" method="post" enctype="multipart/form-data">
                 <input type="hidden" name="Id" id="v_Id" />
-                <input type="hidden" name="ExistingPhotoPath" id="v_ExistingPhotoPath" />
-
                 <div class="modal-body p-4">
                     <h5 class="fw-bold mb-4" id="vehicleModalTitle">Автомобіль</h5>
                     <div class="row g-4">
                         <div class="col-md-4">
-                            <h6 class="text-primary small fw-bold">Характеристики</h6>
-                            <label class="small fw-bold text-muted">Марка</label>
-                            <input name="Brand" id="v_Brand" class="form-control bg-light border-0 mb-2" required />
-                            <label class="small fw-bold text-muted">Модель</label>
-                            <input name="Model" id="v_Model" class="form-control bg-light border-0 mb-2" required />
-                            <label class="small fw-bold text-muted">Рік випуску</label>
-                            <input name="Year" id="v_Year" type="number" class="form-control bg-light border-0 mb-2" required />
-                            <label class="small fw-bold text-muted">Колір</label>
-                            <input name="Color" id="v_Color" class="form-control bg-light border-0 mb-2" required />
-                        </div>
-                        <div class="col-md-4 border-start border-end px-4">
-                            <h6 class="text-primary small fw-bold">Документи та Призначення</h6>
-                            <label class="small fw-bold text-muted">Номерний знак</label>
-                            <input name="LicensePlate" id="v_LicensePlate" class="form-control bg-light border-0 mb-2" required />
-                            <label class="small fw-bold text-muted">Кількість пасажирських місць</label>
-                            <input name="PassengerSeats" id="v_PassengerSeats" type="number" class="form-control bg-light border-0 mb-2" required />
-                            <label class="small fw-bold text-muted">Дійсність страховки</label>
-                            <input name="InsuranceExpiryDate" id="v_InsuranceExpiryDate" type="date" class="form-control bg-light border-0 mb-2" />
-                            <label class="small fw-bold text-muted">Призначений Водій</label>
-                            <select name="DriverId" id="v_DriverId" class="form-select bg-light border-0 mb-2" asp-items="Model.Drivers" required>
+                            <label>Марка</label>
+                            <input name="Brand" id="v_Brand" class="form-control mb-2" required />
+                            <label>Модель</label>
+                            <input name="Model" id="v_Model" class="form-control mb-2" required />
+                            <label>Рік випуску</label>
+                            <input name="Year" id="v_Year" type="number" class="form-control mb-2" required />
+                            <label>Колір</label>
+                            <input name="Color" id="v_Color" class="form-control mb-2" required />
+                            <label>Водій</label>
+                            <select name="DriverId" id="v_DriverId" class="form-select mb-2" asp-items="Model.Drivers" required>
                                 <option value="">-- Оберіть водія --</option>
                             </select>
-                            <label class="small fw-bold text-muted mt-2">Фотографія авто</label>
-                            <input type="file" name="PhotoFile" accept="image/*" class="form-control bg-light border-0" />
                         </div>
                         <div class="col-md-4">
-                            <h6 class="text-primary small fw-bold">Класи та Послуги</h6>
-                            <label class="small fw-bold text-muted">Доступні класи (можна декілька)</label>
-                            <div class="bg-light p-2 rounded mb-3" style="max-height: 120px; overflow-y: auto;">
-                                @foreach (var c in Model.AvailableClasses)
+                            <label>Номерний знак</label>
+                            <input name="LicensePlate" id="v_LicensePlate" class="form-control mb-2" required />
+                            <label>Місць</label>
+                            <input name="PassengerSeats" id="v_PassengerSeats" type="number" class="form-control mb-2" required />
+                            <label>Дійсність страховки</label>
+                            <input name="InsuranceExpiryDate" id="v_InsuranceExpiryDate" type="date" class="form-control mb-2" />
+                            <label class="mt-2">Фотографії авто (Можна декілька)</label>
+                            <input type="file" name="PhotoFiles" multiple accept="image/*" class="form-control" />
+                            <div id="v_PhotosPreview" class="d-flex flex-wrap gap-2 mt-2"></div>
+                        </div>
+                        <div class="col-md-4">
+                            <label>Доступні класи</label>
+                            <div class="bg-light p-2 rounded mb-3" style="max-height: 150px; overflow-y: auto;">
+                                @if (Model.AvailableClasses != null)
                                 {
-                                    <div class="form-check small">
-                                        <input class="form-check-input v-class-check" type="checkbox" name="SelectedClassIds" value="@c.Id" id="cls_@c.Id">
-                                        <label class="form-check-label">@c.Name</label>
-                                    </div>
+                                    foreach (var c in Model.AvailableClasses)
+                                    {
+                                        <div class="form-check">
+                                            <input class="form-check-input v-class-check" type="checkbox" name="SelectedClassIds" value="@c.Id" id="cls_@c.Id">
+                                            <label class="form-check-label">@c.Name</label>
+                                        </div>
+                                    }
                                 }
                             </div>
-
-                            <label class="small fw-bold text-muted">Додаткові послуги (можна декілька)</label>
-                            <div class="bg-light p-2 rounded" style="max-height: 120px; overflow-y: auto;">
-                                @foreach (var s in Model.AvailableServices)
+                            <label>Додаткові послуги</label>
+                            <div class="bg-light p-2 rounded" style="max-height: 150px; overflow-y: auto;">
+                                @if (Model.AvailableServices != null)
                                 {
-                                    <div class="form-check small">
-                                        <input class="form-check-input v-srv-check" type="checkbox" name="SelectedServiceIds" value="@s.Id" id="vsrv_@s.Id">
-                                        <label class="form-check-label">@s.Name</label>
-                                    </div>
+                                    foreach (var s in Model.AvailableServices)
+                                    {
+                                        <div class="form-check">
+                                            <input class="form-check-input v-srv-check" type="checkbox" name="SelectedServiceIds" value="@s.Id" id="vsrv_@s.Id">
+                                            <label class="form-check-label">@s.Name</label>
+                                        </div>
+                                    }
                                 }
                             </div>
                         </div>
                     </div>
                 </div>
-                <div class="modal-footer border-0 p-4">
+                <div class="modal-footer p-4 pt-0">
                     <button type="button" class="btn btn-light" data-bs-dismiss="modal">Закрити</button>
-                    <button type="submit" id="vehicleSaveBtn" class="btn btn-primary px-4" style="background-color: #1E3A8A;">Зберегти</button>
+                    <button type="submit" id="vehicleSaveBtn" class="btn btn-primary">Зберегти</button>
                 </div>
             </form>
         </div>
     </div>
 </div>
-
-<script>
+<!--<script>
     function openVehicleModal(id, viewOnly) {
         $('#vehicleForm')[0].reset();
         $('#v_Id').val(id);
@@ -169,4 +176,4 @@
         }
         $('#vehicleModal').modal('show');
     }
-</script>
+</script> -->

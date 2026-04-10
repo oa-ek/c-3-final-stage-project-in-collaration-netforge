@@ -27,6 +27,31 @@ namespace TaxiLink.UI.Models
         public string ConfirmPassword { get; set; }
 
         [Required]
-        public int RoleId { get; set; } 
+        public int RoleId { get; set; }
+    }
+
+    public class ForgotPasswordViewModel
+    {
+        [Required(ErrorMessage = "Введіть ваш Email")]
+        [EmailAddress(ErrorMessage = "Некоректний формат Email")]
+        public string Email { get; set; }
+    }
+
+    public class ResetPasswordViewModel
+    {
+        [Required]
+        public string Token { get; set; }
+
+        [Required]
+        public string Email { get; set; }
+
+        [Required(ErrorMessage = "Введіть новий пароль")]
+        [StringLength(100, ErrorMessage = "Пароль має бути не менше {2} символів", MinimumLength = 6)]
+        [DataType(DataType.Password)]
+        public string NewPassword { get; set; }
+
+        [DataType(DataType.Password)]
+        [Compare("NewPassword", ErrorMessage = "Паролі не збігаються")]
+        public string ConfirmPassword { get; set; }
     }
 }

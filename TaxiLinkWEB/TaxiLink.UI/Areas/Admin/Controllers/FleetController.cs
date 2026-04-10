@@ -98,16 +98,16 @@ namespace TaxiLink.UI.Admin_areas.Controllers
                 LicensePlate = vehicle.LicensePlate,
                 PassengerSeats = vehicle.PassengerSeats,
                 InsuranceExpiryDate = vehicle.InsuranceExpiryDate,
-                ExistingPhotoPath = vehicle.Photos?.FirstOrDefault()?.PhotoPath,
+                ExistingPhotos = vehicle.Photos?.Select(p => p.PhotoPath).ToList() ?? new List<string>(),
                 SelectedClassIds = vehicle.VehicleClasses?.Select(c => c.VehicleClassId).ToList() ?? new List<int>(),
                 SelectedServiceIds = vServices.Where(s => s.VehicleId == vehicle.Id).Select(s => s.AdditionalServiceId).ToList()
             });
         }
 
         [HttpPost]
-        public async Task<IActionResult> UpsertVehicle(AdminViewModels.VehicleUpsertDto dto, IFormFile? PhotoFile)
+        public async Task<IActionResult> UpsertVehicle(AdminViewModels.VehicleUpsertDto dto, List<IFormFile>? PhotoFiles)
         {
-            string? newPhotoPath = await ProcessPhotoAsync(PhotoFile, dto.ExistingPhotoPath);
+            var newPhotoPaths = await ProcessPhotosAsync(PhotoFiles);
 
             if (dto.Id == 0)
             {
@@ -126,9 +126,12 @@ namespace TaxiLink.UI.Admin_areas.Controllers
                 await _vehicleRepo.AddAsync(vehicle);
                 await _vehicleRepo.SaveChangesAsync();
 
-                if (!string.IsNullOrEmpty(newPhotoPath))
+                if (newPhotoPaths.Any())
                 {
-                    await _photoRepo.AddAsync(new VehiclePhoto { VehicleId = vehicle.Id, PhotoPath = newPhotoPath });
+                    foreach (var path in newPhotoPaths)
+                    {
+                        await _photoRepo.AddAsync(new VehiclePhoto { VehicleId = vehicle.Id, PhotoPath = path });
+                    }
                     await _photoRepo.SaveChangesAsync();
                 }
 
@@ -151,13 +154,16 @@ namespace TaxiLink.UI.Admin_areas.Controllers
                     _vehicleRepo.Update(existingVehicle);
                     await _vehicleRepo.SaveChangesAsync();
 
-                    if (PhotoFile != null && !string.IsNullOrEmpty(newPhotoPath))
+                    if (PhotoFiles != null && PhotoFiles.Count > 0 && newPhotoPaths.Any())
                     {
                         var oldPhotos = (await _photoRepo.GetAllAsync()).Where(p => p.VehicleId == dto.Id).ToList();
                         foreach (var p in oldPhotos) _photoRepo.Delete(p);
                         await _photoRepo.SaveChangesAsync();
 
-                        await _photoRepo.AddAsync(new VehiclePhoto { VehicleId = dto.Id, PhotoPath = newPhotoPath });
+                        foreach (var path in newPhotoPaths)
+                        {
+                            await _photoRepo.AddAsync(new VehiclePhoto { VehicleId = dto.Id, PhotoPath = path });
+                        }
                         await _photoRepo.SaveChangesAsync();
                     }
 
@@ -169,7 +175,7 @@ namespace TaxiLink.UI.Admin_areas.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> Delete(int id)
+        public async Task<IActionResult> DeleteVehicle(int id)
         {
             var vehicle = await _vehicleRepo.GetByIdAsync(id);
             if (vehicle != null)
@@ -191,15 +197,27 @@ namespace TaxiLink.UI.Admin_areas.Controllers
             return RedirectToAction(nameof(Index));
         }
 
-        private async Task<string?> ProcessPhotoAsync(IFormFile? file, string? currentPath)
+        private async Task<List<string>> ProcessPhotosAsync(List<IFormFile>? files)
         {
-            if (file == null || file.Length == 0) return currentPath;
+            var paths = new List<string>();
+            if (files == null || files.Count == 0) return paths;
+
             string uploadsFolder = Path.Combine(_env.WebRootPath, "img");
             if (!Directory.Exists(uploadsFolder)) Directory.CreateDirectory(uploadsFolder);
-            string uniqueFileName = Guid.NewGuid().ToString() + "_" + file.FileName;
-            using (var fileStream = new FileStream(Path.Combine(uploadsFolder, uniqueFileName), FileMode.Create))
-                await file.CopyToAsync(fileStream);
-            return "/img/" + uniqueFileName;
+
+            foreach (var file in files)
+            {
+                if (file.Length > 0)
+                {
+                    string uniqueFileName = Guid.NewGuid().ToString() + "_" + file.FileName;
+                    using (var fileStream = new FileStream(Path.Combine(uploadsFolder, uniqueFileName), FileMode.Create))
+                    {
+                        await file.CopyToAsync(fileStream);
+                    }
+                    paths.Add("/img/" + uniqueFileName);
+                }
+            }
+            return paths;
         }
 
         private async Task SaveVehicleLinksAsync(int vehicleId, List<int> classIds, List<int> serviceIds)

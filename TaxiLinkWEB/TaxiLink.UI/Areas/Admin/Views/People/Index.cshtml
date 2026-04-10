@@ -1,151 +1,222 @@
 ﻿@using TaxiLink.UI.Admin_areas.Models
 @model AdminViewModels.PeoplePageViewModel
 
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h2 class="fw-bold">Клієнти та Водії</h2>
-</div>
+@{
+    ViewData["Title"] = "Користувачі";
+}
 
-<div class="card border-0 shadow-sm p-4" style="border-radius: 15px;">
-    <ul class="nav nav-pills mb-4" id="peopleTabs">
-        <li class="nav-item">
-            <button class="nav-link active" data-bs-toggle="pill" data-bs-target="#clients">Клієнти</button>
-        </li>
-        <li class="nav-item ms-2">
-            <button class="nav-link" data-bs-toggle="pill" data-bs-target="#drivers">Водії</button>
-        </li>
-    </ul>
-
-    <div class="tab-content">
-        <div class="tab-pane fade show active" id="clients">
-            <div class="d-flex justify-content-end mb-3">
-                <button class="btn btn-primary" style="background-color: #1E3A8A;" onclick="openClientModal(0, false)">
-                    <i class="fas fa-plus me-2"></i> Додати клієнта
-                </button>
+<div class="row">
+    <div class="col-md-12">
+        <div class="card card-nav-tabs">
+            <div class="card-header">
+                <div class="nav-tabs-navigation">
+                    <div class="nav-tabs-wrapper">
+                        <ul class="nav nav-tabs" data-tabs="tabs">
+                            <li class="nav-item">
+                                <a class="nav-link active" href="#clients" data-bs-toggle="tab">Клієнти</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="#drivers" data-bs-toggle="tab">Водії</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="#reviews" data-bs-toggle="tab">Відгуки</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="#blacklist" data-bs-toggle="tab">Чорний список</a>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
             </div>
-            <table class="table align-middle">
-                <thead class="text-muted small uppercase">
-                    <tr>
-                        <th>ID</th>
-                        <th>Фото</th>
-                        <th>Ім'я</th>
-                        <th>Телефон</th>
-                        <th>Email</th>
-                        <th>Рейтинг</th>
-                        <th class="text-end">Дії</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var u in Model.Clients)
-                    {
-                        <tr>
-                            <td class="fw-bold">#@u.Id</td>
-                            <td><img src="@(string.IsNullOrEmpty(u.AvatarPath) ? "/img/default-avatar.png" : u.AvatarPath)" class="rounded-circle" style="width: 40px; height: 40px; object-fit: cover;"></td>
-                            <td class="fw-bold">@u.FirstName @u.LastName</td>
-                            <td>@u.PhoneNumber</td>
-                            <td>@u.Email</td>
-                            <td><i class="fas fa-star text-warning me-1"></i> @u.Rating</td>
-                            <td class="text-end">
-                                <button onclick="openClientModal(@u.Id, true)" class="btn btn-link text-muted p-1"><i class="fas fa-eye"></i></button>
-                                <button onclick="openClientModal(@u.Id, false)" class="btn btn-link text-muted p-1"><i class="fas fa-pencil-alt"></i></button>
-                                <form asp-action="DeleteUser" asp-route-id="@u.Id" method="post" class="d-inline" onsubmit="return confirm('Видалити клієнта?');">
-                                    <button type="submit" class="btn btn-link text-danger p-1"><i class="fas fa-trash"></i></button>
-                                </form>
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
-        </div>
+            <div class="card-body">
+                <div class="tab-content text-center">
 
-        <div class="tab-pane fade" id="drivers">
-            <div class="d-flex justify-content-end mb-3">
-                <button class="btn btn-primary" style="background-color: #1E3A8A;" onclick="openDriverModal(0, false)">
-                    <i class="fas fa-plus me-2"></i> Найняти водія
-                </button>
+                    <div class="tab-pane active" id="clients">
+                        <div class="d-flex justify-content-end mb-3">
+                            <button class="btn btn-sm btn-info" onclick="openClientModal(0, false)">Новий клієнт</button>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Ім'я</th>
+                                        <th>Телефон</th>
+                                        <th>Рейтинг</th>
+                                        <th class="text-end">Дії</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var u in Model.Clients)
+                                    {
+                                        <tr>
+                                            <td>#@u.Id</td>
+                                            <td class="text-start">@u.FirstName @u.LastName</td>
+                                            <td>@u.PhoneNumber</td>
+                                            <td><i class="fas fa-star text-warning"></i> @u.Rating</td>
+                                            <td class="text-end">
+                                                <button onclick="openClientModal(@u.Id, true)" class="btn btn-link btn-sm text-info"><i class="fas fa-eye"></i></button>
+                                                <button onclick="openClientModal(@u.Id, false)" class="btn btn-link btn-sm text-success"><i class="fas fa-pencil-alt"></i></button>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="tab-pane" id="drivers">
+                        <div class="d-flex justify-content-end mb-3">
+                            <button class="btn btn-sm btn-success" onclick="openDriverModal(0, false)">Найняти водія</button>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Водій</th>
+                                        <th>Статус</th>
+                                        <th>ІПН</th>
+                                        <th class="text-end">Дії</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var d in Model.Drivers)
+                                    {
+                                        <tr>
+                                            <td>#@d.Id</td>
+                                            <td class="text-start">@d.User?.FirstName @d.User?.LastName</td>
+                                            <td>
+                                                <span class="badge @(d.IsVerified ? "bg-success" : "bg-warning text-dark")">
+                                                    @(d.IsVerified ? "Активний" : "Очікує підтвердження")
+                                                </span>
+                                            </td>
+                                            <td>@d.TaxId</td>
+                                            <td class="text-end">
+                                                @if (!d.IsVerified)
+                                                {
+                                                    <button onclick="verifyDriver(@d.Id, true)" class="btn btn-link btn-sm text-success"><i class="fas fa-check"></i></button>
+                                                    <button onclick="verifyDriver(@d.Id, false)" class="btn btn-link btn-sm text-danger"><i class="fas fa-times"></i></button>
+                                                }
+                                                <button onclick="openDriverModal(@d.Id, true)" class="btn btn-link btn-sm text-info"><i class="fas fa-eye"></i></button>
+                                                <button onclick="openDriverModal(@d.Id, false)" class="btn btn-link btn-sm text-warning"><i class="fas fa-pencil-alt"></i></button>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="tab-pane" id="reviews">
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Замовлення</th>
+                                        <th>Оцінка</th>
+                                        <th>Коментар</th>
+                                        <th>Дата</th>
+                                        <th class="text-end">Дії</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @if (Model.Reviews != null)
+                                    {
+                                        foreach (var r in Model.Reviews)
+                                        {
+                                            <tr>
+                                                <td>#@r.Id</td>
+                                                <td>#@r.OrderId</td>
+                                                <td><i class="fas fa-star text-warning"></i> @r.Rating</td>
+                                                <td class="text-start">@r.Comment</td>
+                                                <td>@r.CreatedAt.ToString("dd.MM.yyyy")</td>
+                                                <td class="text-end">
+                                                    <button onclick="deleteReview(@r.Id)" class="btn btn-link btn-sm text-danger"><i class="fas fa-trash"></i></button>
+                                                </td>
+                                            </tr>
+                                        }
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="tab-pane" id="blacklist">
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Блокувальник</th>
+                                        <th>Заблокований</th>
+                                        <th>Дата</th>
+                                        <th class="text-end">Дії</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @if (Model.Blacklists != null)
+                                    {
+                                        foreach (var b in Model.Blacklists)
+                                        {
+                                            <tr>
+                                                <td>#@b.Id</td>
+                                                <td>@b.BlockerUser?.FirstName @b.BlockerUser?.LastName</td>
+                                                <td>@b.BlockedUser?.FirstName @b.BlockedUser?.LastName</td>
+                                                <td>@b.BlockedAt.ToString("dd.MM.yyyy")</td>
+                                                <td class="text-end">
+                                                    <button onclick="unblockUser(@b.Id)" class="btn btn-link btn-sm text-success"><i class="fas fa-unlock"></i></button>
+                                                </td>
+                                            </tr>
+                                        }
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                </div>
             </div>
-            <table class="table align-middle">
-                <thead class="text-muted small uppercase">
-                    <tr>
-                        <th>ID</th>
-                        <th>Фото</th>
-                        <th>Ім'я</th>
-                        <th>Телефон</th>
-                        <th>ІПН</th>
-                        <th>Статус</th>
-                        <th class="text-end">Дії</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var d in Model.Drivers)
-                    {
-                        <tr>
-                            <td class="fw-bold">#@d.Id</td>
-                            <td><img src="@(d.User == null || string.IsNullOrEmpty(d.User.AvatarPath) ? "/img/default-avatar.png" : d.User.AvatarPath)" class="rounded-circle" style="width: 40px; height: 40px; object-fit: cover;"></td>
-                            <td class="fw-bold">@(d.User?.FirstName) @(d.User?.LastName)</td>
-                            <td>@(d.User?.PhoneNumber)</td>
-                            <td>@d.TaxId</td>
-                            <td>
-                                @if (d.IsVerified)
-                                {
-                                    <span class="badge-status status-completed">Активний</span>
-                                }
-                                else
-                                {
-
-                                    <span class="badge-status status-progress">Перевірка</span>
-                                }
-                            </td>
-                            <td class="text-end">
-                                <button onclick="openDriverModal(@d.Id, true)" class="btn btn-link text-muted p-1"><i class="fas fa-eye"></i></button>
-                                <button onclick="openDriverModal(@d.Id, false)" class="btn btn-link text-muted p-1"><i class="fas fa-pencil-alt"></i></button>
-                                <form asp-action="DeleteDriver" asp-route-id="@d.Id" method="post" class="d-inline" onsubmit="return confirm('Ви впевнені, що ви хочете звільнити водія назавжди? Цю дію неможливо скасувати.');">
-                                    <button type="submit" class="btn btn-link text-danger p-1"><i class="fas fa-trash"></i></button>
-                                </form>
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
         </div>
     </div>
 </div>
 
 <div class="modal fade" id="clientModal" tabindex="-1">
     <div class="modal-dialog modal-lg modal-dialog-centered">
-        <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
-            <form id="clientForm" asp-action="UpsertUser" method="post" enctype="multipart/form-data">
+        <div class="modal-content">
+            <form id="clientForm" asp-action="UpsertUser" method="post">
                 <input type="hidden" name="Id" id="u_Id" />
-                <input type="hidden" name="AvatarPath" id="u_AvatarPath" />
-
                 <div class="modal-body p-4">
                     <h5 class="fw-bold mb-4" id="clientModalTitle">Клієнт</h5>
                     <div class="row g-3">
                         <div class="col-md-6">
-                            <label class="small fw-bold text-muted">Ім'я</label>
-                            <input name="FirstName" id="u_FirstName" class="form-control bg-light border-0 mb-2" required />
-                            <label class="small fw-bold text-muted">Прізвище</label>
-                            <input name="LastName" id="u_LastName" class="form-control bg-light border-0 mb-2" />
-                            <label class="small fw-bold text-muted">Телефон</label>
-                            <input name="PhoneNumber" id="u_PhoneNumber" class="form-control bg-light border-0 mb-2" required />
-                            <label class="small fw-bold text-muted">Email</label>
-                            <input name="Email" id="u_Email" type="email" class="form-control bg-light border-0 mb-2" />
+                            <label>Ім'я</label>
+                            <input name="FirstName" id="u_FirstName" class="form-control mb-2" required />
+                            <label>Прізвище</label>
+                            <input name="LastName" id="u_LastName" class="form-control mb-2" />
+                            <label>Телефон</label>
+                            <input name="PhoneNumber" id="u_PhoneNumber" class="form-control mb-2" required />
+                            <label>Email</label>
+                            <input name="Email" id="u_Email" type="email" class="form-control mb-2" />
                         </div>
                         <div class="col-md-6">
-                            <label class="small fw-bold text-muted">Рейтинг ⭐</label>
-                            <input name="Rating" id="u_Rating" type="number" step="0.1" class="form-control bg-light border-0 mb-2" />
-                            <label class="small fw-bold text-muted">Фотографії</label>
-                            <input type="file" name="AvatarFile" accept="image/*" class="form-control bg-light border-0 mb-2" />
-
+                            <label>Рейтинг</label>
+                            <input name="Rating" id="u_Rating" type="number" step="0.1" class="form-control mb-2" />
                             <div class="form-check mt-3">
                                 <input class="form-check-input" type="checkbox" name="PrefersSilentRide" id="u_PrefersSilentRide" value="true">
-                                <label class="form-check-label small">Любить тишу</label>
+                                <label class="form-check-label">Любить тишу</label>
+                            </div>
+                            <div class="form-check mt-2">
+                                <input class="form-check-input" type="checkbox" name="PrefersNoMusic" id="u_PrefersNoMusic" value="true">
+                                <label class="form-check-label">Без музики</label>
                             </div>
                         </div>
                     </div>
                 </div>
-                <div class="modal-footer border-0 p-4">
+                <div class="modal-footer p-4 pt-0">
                     <button type="button" class="btn btn-light" data-bs-dismiss="modal">Закрити</button>
-                    <button type="submit" id="clientSaveBtn" class="btn btn-primary px-4" style="background-color: #1E3A8A;">Зберегти</button>
+                    <button type="submit" id="clientSaveBtn" class="btn btn-primary">Зберегти</button>
                 </div>
             </form>
         </div>
@@ -154,63 +225,57 @@
 
 <div class="modal fade" id="driverModal" tabindex="-1">
     <div class="modal-dialog modal-lg modal-dialog-centered">
-        <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
-            <form id="driverForm" asp-action="UpsertDriver" method="post" enctype="multipart/form-data">
+        <div class="modal-content">
+            <form id="driverForm" asp-action="UpsertDriver" method="post">
                 <input type="hidden" name="DriverId" id="d_DriverId" />
                 <input type="hidden" name="UserId" id="d_UserId" />
-                <input type="hidden" name="AvatarPath" id="d_AvatarPath" />
-
                 <div class="modal-body p-4">
                     <h5 class="fw-bold mb-4" id="driverModalTitle">Водій</h5>
                     <div class="row g-3">
                         <div class="col-md-6">
-                            <h6 class="text-primary small fw-bold">Особисті дані</h6>
-                            <label class="small fw-bold text-muted">Ім'я</label>
-                            <input name="FirstName" id="d_FirstName" class="form-control bg-light border-0 mb-2" required />
-                            <label class="small fw-bold text-muted">Прізвище</label>
-                            <input name="LastName" id="d_LastName" class="form-control bg-light border-0 mb-2" required />
-                            <label class="small fw-bold text-muted">По батькові</label>
-                            <input name="Patronymic" id="d_Patronymic" class="form-control bg-light border-0 mb-2" />
-                            <label class="small fw-bold text-muted">Дата народження</label>
-                            <input name="DateOfBirth" id="d_DateOfBirth" type="date" class="form-control bg-light border-0 mb-2" />
-                            <label class="small fw-bold text-muted">Фотографії (Аватар)</label>
-                            <input type="file" name="AvatarFile" accept="image/*" class="form-control bg-light border-0 mb-2" />
+                            <label>Ім'я</label>
+                            <input name="FirstName" id="d_FirstName" class="form-control mb-2" required />
+                            <label>Прізвище</label>
+                            <input name="LastName" id="d_LastName" class="form-control mb-2" required />
+                            <label>По батькові</label>
+                            <input name="Patronymic" id="d_Patronymic" class="form-control mb-2" />
+                            <label>Дата народження</label>
+                            <input name="DateOfBirth" id="d_DateOfBirth" type="date" class="form-control mb-2" />
                         </div>
                         <div class="col-md-6">
-                            <h6 class="text-primary small fw-bold">Контакти та Документи</h6>
-                            <label class="small fw-bold text-muted">Телефон</label>
-                            <input name="PhoneNumber" id="d_PhoneNumber" class="form-control bg-light border-0 mb-2" required />
-                            <label class="small fw-bold text-muted">Email</label>
-                            <input name="Email" id="d_Email" type="email" class="form-control bg-light border-0 mb-2" />
-                            <label class="small fw-bold text-muted">ІПН</label>
-                            <input name="TaxId" id="d_TaxId" class="form-control bg-light border-0 mb-2" />
-                            <label class="small fw-bold text-muted">IBAN</label>
-                            <input name="Iban" id="d_Iban" class="form-control bg-light border-0 mb-2" />
+                            <label>Телефон</label>
+                            <input name="PhoneNumber" id="d_PhoneNumber" class="form-control mb-2" required />
+                            <label>ІПН</label>
+                            <input name="TaxId" id="d_TaxId" class="form-control mb-2" />
+                            <label>IBAN</label>
+                            <input name="Iban" id="d_Iban" class="form-control mb-2" />
+                            <label>Комісія (%)</label>
+                            <input name="CommissionRate" id="d_CommissionRate" type="text" class="form-control mb-2" />
                         </div>
                     </div>
-                    <div class="row g-3 mt-1">
-                        <div class="col-md-6">
-                            <label class="small fw-bold text-muted">Комісія (%)</label>
-                            <input name="CommissionRate" id="d_CommissionRate" type="text" class="form-control bg-light border-0 mb-2" />
-                        </div>
-                        <div class="col-md-6 d-flex align-items-end">
-                            <div class="form-check mb-2">
+                    <div class="row mt-2">
+                        <div class="col-12">
+                            <div class="form-check form-switch">
                                 <input class="form-check-input" type="checkbox" name="IsVerified" id="d_IsVerified" value="true">
-                                <label class="form-check-label fw-bold text-success">Документи перевірено</label>
+                                <label class="form-check-label text-success fw-bold">Акаунт підтверджено (Верифікований)</label>
+                            </div>
+                            <div class="form-check form-switch mt-2">
+                                <input class="form-check-input" type="checkbox" name="IsWorkingMode" id="d_IsWorkingMode" value="true">
+                                <label class="form-check-label text-info">На лінії (Працює)</label>
                             </div>
                         </div>
                     </div>
                 </div>
-                <div class="modal-footer border-0 p-4">
+                <div class="modal-footer p-4 pt-0">
                     <button type="button" class="btn btn-light" data-bs-dismiss="modal">Закрити</button>
-                    <button type="submit" id="driverSaveBtn" class="btn btn-primary px-4" style="background-color: #1E3A8A;">Зберегти</button>
+                    <button type="submit" id="driverSaveBtn" class="btn btn-primary">Зберегти</button>
                 </div>
             </form>
         </div>
     </div>
 </div>
 
-<script>
+<!-- <script>
     function openClientModal(id, viewOnly) {
         $('#clientForm')[0].reset();
         $('#u_Id').val(id);
@@ -279,4 +344,4 @@
         }
         $('#driverModal').modal('show');
     }
-</script>
+</script> -->

@@ -1,0 +1,66 @@
+﻿<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - TaxiLink Driver</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="~/css/driver-cabinet.css" asp-append-version="true" />
+</head>
+<body>
+    @{
+        var currentAction = ViewContext.RouteData.Values["Action"]?.ToString();
+    }
+    <aside class="sidebar">
+        <div class="logo-area">
+            <h1 class="logo-text">TaxiLink</h1>
+            <p class="logo-sub">Driver Cabinet</p>
+        </div>
+        <nav class="nav-menu">
+            <a href="/Driver/Dashboard/Profile" class="nav-item @(currentAction == "Profile" ? "active" : "")">
+                <i class="fa-regular fa-user"></i> Профіль
+            </a>
+            <a href="/Driver/Dashboard/Index" class="nav-item @(currentAction == "Index" ? "active" : "")">
+                <i class="fa-solid fa-map-location-dot"></i> Карта
+            </a>
+            <a href="/Driver/Dashboard/Orders" class="nav-item @(currentAction == "Orders" ? "active" : "")">
+                <i class="fa-solid fa-clipboard-list"></i> Замовлення
+            </a>
+            <a href="/Driver/Dashboard/Work" class="nav-item @(currentAction == "Work" ? "active" : "")">
+                <i class="fa-solid fa-car-side"></i> Робота
+            </a>
+            <a href="#" class="nav-item"><i class="fa-solid fa-wallet"></i> Гаманець</a>
+            
+        </nav>
+        <a href="/Auth/Logout" class="logout-btn"><i class="fa-solid fa-arrow-right-from-bracket"></i> Вийти з акаунту</a>
+    </aside>
+
+    <main class="main-wrapper">
+        <header class="top-bar">
+            <div></div>
+            <div class="status-toggle">
+                <span id="status-text">@(ViewBag.IsWorkingMode == true ? "Працюю" : "Перерва")</span>
+                <label class="switch">
+                    <input type="checkbox" id="workingModeToggle" @(ViewBag.IsWorkingMode == true ? "checked" : "") onchange="toggleStatus(this)">
+                    <span class="slider"></span>
+                </label>
+            </div>
+            <div class="top-stats">
+                <div class="balance-badge"><i class="fa-solid fa-wallet text-muted"></i> @(ViewBag.WalletBalance ?? "0") ₴</div>
+                <div class="rating-badge"><i class="fa-solid fa-star text-warning"></i> @(ViewBag.Rating ?? "5.0")</div>
+                <div class="avatar-mini">
+                    <i class="fa-solid fa-user"></i>
+                </div>
+            </div>
+        </header>
+        @RenderBody()
+    </main>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="~/js/driver-cabinet.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>
