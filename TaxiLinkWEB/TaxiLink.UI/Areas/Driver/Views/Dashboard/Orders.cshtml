@@ -1,0 +1,71 @@
+﻿@model IEnumerable<TaxiLink.UI.Areas.Driver.Models.DriverOrderViewModel>
+@{
+    ViewData["Title"] = "Замовлення";
+    Layout = "~/Areas/Driver/Views/Shared/_DriverLayout.cshtml";
+}
+
+<div class="orders-wrapper">
+    <div class="top-filter-bar">
+        <div class="filter-tabs">
+            <button class="filter-tab active">Всі</button>
+            <button class="filter-tab">Поточні</button>
+            <button class="filter-tab">На час</button>
+        </div>
+        <button class="filter-icon-btn"><i class="fa-solid fa-filter"></i></button>
+    </div>
+
+    <div class="orders-grid">
+        @if (!Model.Any())
+        {
+            <div style="grid-column: 1 / -1; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 400px; text-align: center;">
+                <div style="font-size: 60px; color: rgba(255,255,255,0.05); margin-bottom: 20px;"><i class="fa-solid fa-clipboard-list"></i></div>
+                <h3 style="font-weight: 700; margin-bottom: 10px;">Немає замовлень для відображення</h3>
+                <p style="color: var(--text-muted); max-width: 400px; font-size: 14px;">Якщо ви використовуєте фільтри, увімкніть їх та переведіть у режим "Автовзяття".</p>
+            </div>
+        }
+        else
+        {
+            foreach (var order in Model)
+            {
+                <div class="order-card">
+                    <div class="order-card-header">
+                        <div class="order-time">@(order.ScheduledTime.HasValue ? $"Завтра, {order.ScheduledTime.Value:HH:mm}" : (order.StatusName == "Завершено" ? $"Сьогодні, {order.CreatedAt:HH:mm}" : "Зараз"))</div>
+                        <div class="order-price">@order.TotalPrice ₴</div>
+                    </div>
+
+                    <div class="route-container">
+                        <div class="route-line"></div>
+                        <div class="route-point">
+                            <div class="dot-green"></div>
+                            @order.PickupAddress
+                        </div>
+                        <div class="route-point">
+                            <div class="dot-red"></div>
+                            @order.DropoffAddress
+                            <div class="order-meta mt-2">
+                                <span>@order.Distance км</span>
+                                <span>@order.PaymentMethodName</span>
+                                <span>@order.VehicleClassName</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="order-card-footer">
+                        @{
+                            string badgeClass = "searching";
+                            if (order.StatusName.Contains("Завершено")) badgeClass = "completed";
+                            if (order.StatusName.Contains("Заплановано")) badgeClass = "planned";
+                        }
+                        <div class="status-badge @badgeClass">@order.StatusName</div>
+                    </div>
+                </div>
+            }
+        }
+    </div>
+
+    <div class="bottom-dock">
+        <a href="/Driver/Dashboard/Index" class="dock-btn">Карта</a>
+        <a href="/Driver/Dashboard/Orders" class="dock-btn active">Замовлення</a>
+        <a href="/Driver/Dashboard/Work" class="dock-btn">Робота</a>
+    </div>
+</div>

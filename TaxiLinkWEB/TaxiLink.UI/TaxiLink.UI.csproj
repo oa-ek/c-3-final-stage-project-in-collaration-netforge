@@ -20,14 +20,14 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Areas\Driver\Views\" />
-    <Folder Include="Views\Shared\" />
     <Folder Include="wwwroot\img\" />
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="BCrypt.Net-Next" Version="4.1.0" />
     <PackageReference Include="ClosedXML" Version="0.105.0" />
     <PackageReference Include="DocX" Version="5.0.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.Facebook" Version="9.0.14" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.Google" Version="9.0.14" />
   </ItemGroup>
 

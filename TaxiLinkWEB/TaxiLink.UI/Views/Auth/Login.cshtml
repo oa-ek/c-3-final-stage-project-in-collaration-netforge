@@ -2,7 +2,6 @@
 @{
     Layout = null;
 }
-
 <!DOCTYPE html>
 <html lang="uk">
 <head>
@@ -11,173 +10,54 @@
     <title>Вхід - TaxiLink</title>
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
-    <style>
-        body {
-            background: linear-gradient(rgba(15, 23, 42, 0.85), rgba(15, 23, 42, 0.95)), url('/img/city-bg.jpg') no-repeat center center fixed;
-            background-size: cover;
-            color: white;
-            font-family: 'Inter', sans-serif;
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .auth-wrapper {
-            width: 100%;
-            max-width: 1300px;
-            padding: 20px;
-            display: flex;
-            align-items: center;
-        }
-
-        .glass-card {
-            background: rgba(30, 35, 45, 0.6);
-            backdrop-filter: blur(25px);
-            -webkit-backdrop-filter: blur(25px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 28px;
-            padding: 60px;
-            width: 100%;
-            max-width: 580px;
-            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.6);
-        }
-
-        .premium-img {
-            width: 100%;
-            height: 450px;
-            object-fit: cover;
-            border-radius: 20px;
-        }
-
-        .form-control {
-            background: rgba(255, 255, 255, 0.2);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            color: white;
-            border-radius: 14px;
-            padding: 16px 15px 16px 50px;
-        }
-
-            .form-control::placeholder {
-                color: rgba(255, 255, 255, 0.7);
-            }
-
-            .form-control:focus {
-                background: rgba(255, 255, 255, 0.3);
-                border-color: #FFCC00;
-                color: white;
-                box-shadow: none;
-            }
-
-        .input-group {
-            position: relative;
-            margin-bottom: 20px;
-        }
-
-            .input-group i {
-                position: absolute;
-                left: 18px;
-                top: 50%;
-                transform: translateY(-50%);
-                color: white;
-                z-index: 10;
-            }
-
-        .btn-taxi {
-            background: #FFCC00;
-            color: #1e293b;
-            font-weight: 700;
-            border-radius: 14px;
-            padding: 16px;
-            border: none;
-            font-size: 1.1rem;
-            cursor: pointer;
-        }
-
-            .btn-taxi:hover {
-                background: #e6b800;
-            }
-
-        .btn-google {
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            color: white;
-            border-radius: 14px;
-            padding: 14px;
-            text-decoration: none;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-top: 20px;
-        }
-
-        .text-taxi {
-            color: #FFCC00;
-            text-decoration: none;
-        }
-
-        .divider {
-            display: flex;
-            align-items: center;
-            text-align: center;
-            margin: 30px 0;
-            color: rgba(255,255,255,0.5);
-            font-size: 0.9rem;
-        }
-
-            .divider::before, .divider::after {
-                content: '';
-                flex: 1;
-                border-bottom: 1px solid rgba(255,255,255,0.2);
-            }
-
-            .divider:not(:empty)::before {
-                margin-right: 15px;
-            }
-
-            .divider:not(:empty)::after {
-                margin-left: 15px;
-            }
-    </style>
+    <link rel="stylesheet" href="~/css/auth-custom.css" asp-append-version="true" />
 </head>
 <body>
-    <div class="auth-wrapper row">
-        <div class="col-lg-6 d-none d-lg-block">
+    <div class="auth-wrapper row w-100 m-0">
+        <div class="col-lg-6 d-none d-lg-flex flex-column justify-content-center p-5">
             <h1 class="text-taxi fw-bold mb-4 display-3">TaxiLink</h1>
             <img src="https://images.unsplash.com/photo-1494976388531-d1058494cdd8?auto=format&fit=crop&w=1200&q=80" class="premium-img mb-4" />
             <p class="opacity-75 fs-4">Преміум сервіс таксі для сучасного міста.</p>
         </div>
         <div class="col-lg-6">
-            <div class="glass-card ms-auto">
+            <div class="glass-card">
                 <h2 class="fw-bold mb-2">З поверненням у TaxiLink</h2>
                 <p class="opacity-50 mb-5">Ваша поїздка на відстані одного кліку.</p>
                 <form asp-controller="Auth" asp-action="Login" method="post">
-                    <div class="input-group">
-                        <i class="fa-regular fa-envelope"></i>
+                    <div asp-validation-summary="ModelOnly" class="text-danger mb-3 small"></div>
+                    <div class="input-icon-wrapper">
+                        <i class="fa-regular fa-envelope left-icon"></i>
                         <input asp-for="Email" class="form-control" placeholder="Електронна пошта" required />
                     </div>
-                    <div class="input-group">
-                        <i class="fa-solid fa-lock"></i>
+                    <div class="input-icon-wrapper">
+                        <i class="fa-solid fa-lock left-icon"></i>
                         <input asp-for="Password" type="password" class="form-control" placeholder="Пароль" required />
+                        <i class="fa-regular fa-eye right-icon toggle-password"></i>
                     </div>
-                    <div class="d-flex justify-content-between mb-4">
-                        <div class="form-check">
-                            <input asp-for="RememberMe" class="form-check-input" type="checkbox" />
-                            <label asp-for="RememberMe" class="form-check-label opacity-75">Запам'ятати мене</label>
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <div class="form-check m-0">
+                            <input asp-for="RememberMe" class="form-check-input" />
+                            <label asp-for="RememberMe" class="form-check-label opacity-75 small">Запам'ятати мене</label>
                         </div>
-                        <a href="#" class="text-taxi">Забули пароль?</a>
+                        <a asp-action="ForgotPassword" class="text-taxi small fw-bold">Забули пароль?</a>
                     </div>
-                    <button type="submit" class="btn btn-taxi w-100">Увійти</button>
+                    <button type="submit" class="btn btn-taxi">Увійти</button>
                     <div class="divider">Або увійдіть через</div>
-                    <a asp-controller="Auth" asp-action="GoogleLogin" class="btn-google">
-                        <i class="fab fa-google me-2" style="color: #DB4437;"></i> Google акаунт
-                    </a>
-                    <div class="text-center mt-5 opacity-75">
-                        Немає акаунту? <a asp-controller="Auth" asp-action="Register" class="text-taxi fw-bold">Зареєструватися</a>
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <a asp-action="GoogleLogin" class="social-btn"><i class="fab fa-google text-danger me-2"></i> Google</a>
+                        </div>
+                        <div class="col-6">
+                            <a asp-action="FacebookLogin" class="social-btn"><i class="fab fa-facebook text-primary me-2"></i> Facebook</a>
+                        </div>
+                    </div>
+                    <div class="text-center mt-5 opacity-75 small">
+                        Немає акаунту? <a asp-action="Register" class="text-taxi fw-bold fs-6">Зареєструватися</a>
                     </div>
                 </form>
             </div>
         </div>
     </div>
+    <script src="~/js/auth-logic.js" asp-append-version="true"></script>
 </body>
 </html>

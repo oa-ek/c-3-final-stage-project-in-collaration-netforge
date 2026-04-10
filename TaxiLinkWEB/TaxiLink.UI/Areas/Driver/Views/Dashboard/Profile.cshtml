@@ -1,0 +1,222 @@
+﻿@model TaxiLink.UI.Areas.Driver.Models.DriverProfileViewModel
+@{
+    ViewData["Title"] = "Профіль";
+    Layout = "~/Areas/Driver/Views/Shared/_DriverLayout.cshtml";
+}
+
+<div class="content-area" style="flex-direction: column; overflow-y: auto;">
+    <form asp-action="Profile" method="post" enctype="multipart/form-data" id="profileForm">
+        <div class="profile-header-card">
+            <div class="avatar-wrapper">
+                <img id="avatarPreview" src="@(string.IsNullOrEmpty(Model.AvatarPath) ? "/img/default-avatar.png" : Model.AvatarPath)" alt="Avatar" />
+                <div class="avatar-btn" id="avatarUploadBtn"><i class="fa-solid fa-camera"></i></div>
+                <input type="file" asp-for="AvatarUpload" id="avatarInput" accept="image/*" style="display: none;" />
+            </div>
+            <div>
+                <div class="driver-name">@Model.FirstName @Model.LastName</div>
+                <div class="status-badges">
+                    <div class="badge-custom badge-yellow">Статус: Звичайний</div>
+                    @if (Model.IsVerified)
+                    {
+                        <div class="badge-custom badge-green">Верифіковано</div>
+                    }
+                    else
+                    {
+                        <div class="badge-custom badge-blue">Верифікація: В процесі</div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="nav-tabs-custom">
+            <button type="button" class="nav-link active" onclick="switchTab('personal')">Особисті дані</button>
+            <button type="button" class="nav-link" onclick="switchTab('transport')">Транспорт</button>
+            <button type="button" class="nav-link" onclick="switchTab('requisites')">Реквізити</button>
+            <button type="button" class="nav-link" onclick="switchTab('services')">Послуги</button>
+        </div>
+
+        <div class="tab-content-card">
+            <div id="tab-personal" class="tab-pane d-block">
+                <div class="row g-4">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label>Ім'я</label>
+                            <input asp-for="FirstName" class="form-control-custom" />
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label>Прізвище</label>
+                            <input asp-for="LastName" class="form-control-custom" />
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label>По батькові</label>
+                            <input asp-for="Patronymic" class="form-control-custom" />
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label>Email</label>
+                            <input asp-for="Email" type="email" class="form-control-custom" />
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label>Номер телефону</label>
+                            <input asp-for="PhoneNumber" class="form-control-custom" />
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label>Дата народження</label>
+                            <input asp-for="DateOfBirth" type="date" class="form-control-custom" />
+                        </div>
+                    </div>
+                    <div class="col-md-12">
+                        <div class="form-group">
+                            <label>РНОКПП (ІПН)</label>
+                            <input asp-for="TaxId" class="form-control-custom" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="tab-transport" class="tab-pane d-none">
+                <div class="row g-4">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label>Марка</label>
+                            <input asp-for="CarBrand" class="form-control-custom" />
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label>Модель</label>
+                            <input asp-for="CarModel" class="form-control-custom" />
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label>Рік</label>
+                            <input asp-for="CarYear" class="form-control-custom" />
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label>Колір</label>
+                            <input asp-for="CarColor" class="form-control-custom" />
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label>Держ. номер</label>
+                            <input asp-for="LicensePlate" class="form-control-custom" />
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label>Кількість місць</label>
+                            <input asp-for="PassengerSeats" type="number" class="form-control-custom" />
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label>Термін дії страховки</label>
+                            <input asp-for="InsuranceExpiryDate" type="date" class="form-control-custom" />
+                        </div>
+                    </div>
+                    <div class="col-md-12 mt-3">
+                        <label class="mb-3 d-block" style="color: var(--text-muted); font-size: 13px;">Клас авто</label>
+                        <div>
+                            @foreach (var vClass in Model.AvailableVehicleClasses)
+                            {
+                                bool isSelected = Model.SelectedVehicleClassIds.Contains(vClass.Id);
+                                <div class="service-btn @(isSelected ? "selected" : "")" onclick="toggleVehicleClass(this, @vClass.Id)">
+                                    @vClass.Name
+                                    <i class="fa-solid @(isSelected ? "fa-xmark" : "fa-plus")"></i>
+                                </div>
+                            }
+                        </div>
+                        <div id="vclass-inputs">
+                            @foreach (var cId in Model.SelectedVehicleClassIds)
+                            {
+                                <input type="hidden" name="SelectedVehicleClassIds" value="@cId" id="vclass-input-@cId" />
+                            }
+                        </div>
+                    </div>
+                    <div class="col-md-12 mt-4">
+                        <label class="mb-3 d-block" style="color: var(--text-muted); font-size: 13px;">Завантажити нові фото авто</label>
+                        <input type="file" asp-for="CarPhotosUpload" multiple class="form-control-custom" accept="image/*" />
+
+                        @if (Model.ExistingCarPhotos.Any())
+                        {
+                            <label class="mt-4 mb-3 d-block" style="color: var(--text-muted); font-size: 13px;">Поточні фото авто</label>
+                            <div class="photo-upload-grid">
+                                @foreach (var photo in Model.ExistingCarPhotos)
+                                {
+                                    <div class="photo-box p-0 overflow-hidden" style="border: 1px solid rgba(255,255,255,0.1);">
+                                        <img src="@photo" style="width:100%; height:100%; object-fit:cover;" />
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <div id="tab-requisites" class="tab-pane d-none">
+                <div class="row g-4">
+                    <div class="col-md-12">
+                        <div class="form-group">
+                            <label>IBAN</label>
+                            <input asp-for="Iban" class="form-control-custom" placeholder="UA00 0000 0000 0000 0000 0000" />
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label>Статус ФОП</label>
+                            <input type="hidden" asp-for="IsFopActive" id="IsFopActiveHidden" />
+                            <div class="fop-toggle">
+                                <button type="button" class="fop-btn @(Model.IsFopActive ? "active-yes" : "")" onclick="setFop(true)">Активний</button>
+                                <button type="button" class="fop-btn @(!Model.IsFopActive ? "active-no" : "")" onclick="setFop(false)">Неактивний</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-12">
+                        <div class="form-group">
+                            <label>Метод оплати</label>
+                            <input type="text" class="form-control-custom" value="Банківська картка" readonly />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="tab-services" class="tab-pane d-none">
+                <label class="mb-3 d-block" style="color: var(--text-muted); font-size: 13px;">Доступні послуги</label>
+                <div>
+                    @foreach (var srv in Model.AvailableServices)
+                    {
+                        bool isSelected = Model.SelectedServiceIds.Contains(srv.Id);
+                        <div class="service-btn @(isSelected ? "selected" : "")" onclick="toggleService(this, @srv.Id)">
+                            @srv.Name
+                            <i class="fa-solid @(isSelected ? "fa-xmark" : "fa-plus")"></i>
+                        </div>
+                    }
+                </div>
+                <div id="services-inputs">
+                    @foreach (var sId in Model.SelectedServiceIds)
+                    {
+                        <input type="hidden" name="SelectedServiceIds" value="@sId" id="srv-input-@sId" />
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="action-bar">
+            <button type="submit" class="btn-save">Зберегти зміни</button>
+            <button type="button" class="btn-delete" onclick="window.location.href='/Auth/Login'">Видалити обліковий запис</button>
+        </div>
+    </form>
+</div>

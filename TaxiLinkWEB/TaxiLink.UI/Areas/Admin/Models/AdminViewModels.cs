@@ -12,14 +12,20 @@ namespace TaxiLink.UI.Admin_areas.Models
             public SelectList? Cities { get; set; }
             public SelectList? VehicleClasses { get; set; }
             public SelectList? PaymentMethods { get; set; }
-            public SelectList Statuses { get; set; }
+            public SelectList? Statuses { get; set; }
+            public SelectList? PromoCodes { get; set; }
+            public SelectList? CancellationReasons { get; set; }
             public IEnumerable<AdditionalService> AvailableServices { get; set; } = new List<AdditionalService>();
         }
+
         public class PeoplePageViewModel
         {
             public IEnumerable<User> Clients { get; set; } = new List<User>();
             public IEnumerable<Driver> Drivers { get; set; } = new List<Driver>();
+            public IEnumerable<Review> Reviews { get; set; } = new List<Review>();
+            public IEnumerable<Blacklist> Blacklists { get; set; } = new List<Blacklist>();
         }
+
         public class DriverUpsertDto
         {
             public int DriverId { get; set; }
@@ -35,22 +41,28 @@ namespace TaxiLink.UI.Admin_areas.Models
             public decimal CommissionRate { get; set; }
             public decimal WalletBalance { get; set; }
             public bool IsVerified { get; set; }
+            public bool IsWorkingMode { get; set; }
             public string? AvatarPath { get; set; }
         }
 
         public class FleetPageViewModel
         {
             public IEnumerable<Vehicle> Vehicles { get; set; } = new List<Vehicle>();
-            public SelectList Drivers { get; set; }
+            public SelectList? Drivers { get; set; }
             public IEnumerable<VehicleClass> AvailableClasses { get; set; } = new List<VehicleClass>();
             public IEnumerable<AdditionalService> AvailableServices { get; set; } = new List<AdditionalService>();
         }
+
         public class SettingsPageViewModel
         {
             public IEnumerable<City> Cities { get; set; } = new List<City>();
             public IEnumerable<AdditionalService> AdditionalServices { get; set; } = new List<AdditionalService>();
             public IEnumerable<OrderStatus> OrderStatuses { get; set; } = new List<OrderStatus>();
+            public IEnumerable<VehicleClass> VehicleClasses { get; set; } = new List<VehicleClass>();
+            public IEnumerable<PaymentMethod> PaymentMethods { get; set; } = new List<PaymentMethod>();
+            public IEnumerable<CancellationReason> CancellationReasons { get; set; } = new List<CancellationReason>();
         }
+
         public class VehicleUpsertDto
         {
             public int Id { get; set; }
@@ -64,13 +76,15 @@ namespace TaxiLink.UI.Admin_areas.Models
             public DateTime? InsuranceExpiryDate { get; set; }
             public List<int> SelectedClassIds { get; set; } = new List<int>();
             public List<int> SelectedServiceIds { get; set; } = new List<int>();
-            public string? ExistingPhotoPath { get; set; }
+            public List<string> ExistingPhotos { get; set; } = new List<string>();
         }
+
         public class MarketingPageViewModel
         {
             public IEnumerable<PromoCode> PromoCodes { get; set; } = new List<PromoCode>();
             public IEnumerable<NewsItem> NewsItems { get; set; } = new List<NewsItem>();
         }
+
         public class DashboardViewModel
         {
             public int TotalOrders { get; set; }
@@ -82,4 +96,3 @@ namespace TaxiLink.UI.Admin_areas.Models
         }
     }
 }
-

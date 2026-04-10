@@ -1,133 +1,135 @@
 ﻿@using TaxiLink.UI.Admin_areas.Models
 @model AdminViewModels.OrderPageViewModel
 
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h2 class="fw-bold">Керування замовленнями</h2>
-    <button class="btn btn-primary px-4" onclick="openOrderModal(0, false)" style="background-color: #1E3A8A;">
-        <i class="fas fa-plus me-2"></i> Створити замовлення
-    </button>
+@{
+    ViewData["Title"] = "Замовлення";
+}
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h4 class="card-title">Історія замовлень</h4>
+                <button class="btn btn-sm btn-info" onclick="openOrderModal(0, false)">Створити замовлення</button>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Клієнт</th>
+                                <th>Водій</th>
+                                <th>Маршрут</th>
+                                <th>Статус</th>
+                                <th class="text-end">Сума</th>
+                                <th class="text-end">Дії</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in Model.Orders)
+                            {
+                                <tr>
+                                    <td>#@item.Id</td>
+                                    <td class="text-start">@item.PassengerName<br><span class="text-muted small">@item.PassengerPhone</span></td>
+                                    <td>@(item.Driver?.User?.FirstName ?? "Пошук...")</td>
+                                    <td class="small text-start">@item.PickupAddress<br>↓<br>@item.DropoffAddress</td>
+                                    <td>
+                                        <span class="badge @(item.OrderStatus?.Name.Contains("Ск") == true ? "bg-danger" : item.OrderStatus?.Name.Contains("Зав") == true ? "bg-success" : "bg-warning text-dark")">
+                                            @item.OrderStatus?.Name
+                                        </span>
+                                    </td>
+                                    <td class="text-end fw-bold text-warning">@item.TotalPrice ₴</td>
+                                    <td class="text-end">
+                                        <button onclick="openOrderModal(@item.Id, true)" class="btn btn-link btn-sm text-info"><i class="fas fa-eye"></i></button>
+                                        <button onclick="openOrderModal(@item.Id, false)" class="btn btn-link btn-sm text-warning"><i class="fas fa-pencil-alt"></i></button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
-<div class="card border-0 shadow-sm p-4" style="border-radius: 15px;">
-    <table class="table align-middle">
-        <thead class="text-muted small uppercase">
-            <tr>
-                <th>ID</th>
-                <th>Клієнт</th>
-                <th>Водій</th>
-                <th>Маршрут</th>
-                <th>Статус</th>
-                <th>Сума</th>
-                <th class="text-end">Дії</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var item in Model.Orders)
-            {
-                <tr>
-                    <td class="fw-bold">#@item.Id</td>
-                    <td>@item.PassengerName <br /><small class="text-muted">@item.PassengerPhone</small></td>
-                    <td>@(item.Driver?.User?.FirstName ?? "Не призначено")</td>
-                    <td><span class="small">@item.PickupAddress <i class="fas fa-arrow-right mx-1"></i> @item.DropoffAddress</span></td>
-                    <td><span class="badge-status @(item.OrderStatusId == 3 ? "status-completed" : "status-progress")">@item.OrderStatus?.Name</span></td>
-                    <td class="fw-bold">@item.TotalPrice ₴</td>
-                    <td class="text-end">
-                        <button onclick="openOrderModal(@item.Id, true)" class="btn btn-link text-muted p-1"><i class="fas fa-eye"></i></button>
-                        <button onclick="openOrderModal(@item.Id, false)" class="btn btn-link text-muted p-1"><i class="fas fa-pencil-alt"></i></button>
-                        <form asp-action="Delete" asp-route-id="@item.Id" method="post" class="d-inline" onsubmit="return confirm('Видалити замовлення назавжди?');">
-                            <button type="submit" class="btn btn-link text-danger p-1"><i class="fas fa-trash"></i></button>
-                        </form>
-                    </td>
-                </tr>
-            }
-        </tbody>
-    </table>
-</div>
-
-<div class="modal fade" id="orderModal" tabindex="-1" aria-hidden="true">
+<div class="modal fade" id="orderModal" tabindex="-1">
     <div class="modal-dialog modal-xl modal-dialog-centered">
-        <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
-            <form id="orderForm" asp-action="Upsert" method="post">
+        <div class="modal-content">
+            <form id="orderForm" asp-action="UpsertOrder" method="post">
                 <input type="hidden" name="Id" id="OrderId" />
                 <input type="hidden" name="UserId" id="UserId" />
-
                 <div class="modal-body p-4">
-                    <h4 class="fw-bold mb-4" id="modalTitle">Замовлення</h4>
+                    <h5 class="fw-bold mb-4" id="modalTitle">Замовлення</h5>
                     <div class="row g-4">
                         <div class="col-md-4">
-                            <h6 class="fw-bold text-primary mb-3">Клієнт та Водій</h6>
-                            <label class="small fw-bold text-muted">Телефон</label>
-                            <input name="PassengerPhone" id="PassengerPhone" class="form-control bg-light border-0 mb-2" oninput="searchClient(this.value)" required />
-
-                            <label class="small fw-bold text-muted">Ім'я</label>
-                            <input name="PassengerName" id="PassengerName" class="form-control bg-light border-0 mb-2" required />
-
-                            <label class="small fw-bold text-muted">Водій</label>
-                            <select name="DriverId" id="DriverId" class="form-select bg-light border-0 mb-2" asp-items="Model.Drivers">
-                                <option value="">-- Оберіть водія --</option>
+                            <label>Телефон клієнта</label>
+                            <input name="PassengerPhone" id="PassengerPhone" class="form-control mb-2" oninput="searchClient(this.value)" required />
+                            <label>Ім'я клієнта</label>
+                            <input name="PassengerName" id="PassengerName" class="form-control mb-2" required />
+                            <label>Водій</label>
+                            <select name="DriverId" id="DriverId" class="form-select mb-2" asp-items="Model.Drivers">
+                                <option value="">-- Пошук водія --</option>
                             </select>
-
-                            <label class="small fw-bold text-muted">Статус замовлення</label>
-                            <select name="OrderStatusId" id="OrderStatusId" class="form-select bg-light border-0 mb-2" asp-items="Model.Statuses"></select>
-
-                            <label class="small fw-bold text-muted">Клас авто</label>
-                            <select name="VehicleClassId" id="VehicleClassId" class="form-select bg-light border-0" asp-items="Model.VehicleClasses"></select>
-                        </div>
-
-                        <div class="col-md-4 border-start border-end px-4">
-                            <h6 class="fw-bold text-primary mb-3">Маршрут</h6>
-                            <label class="small fw-bold text-muted">Місто <span id="cityMultiplierBadge" class="badge bg-success ms-1" style="display:none;"></span></label>
-                            <select name="CityId" id="CityId" class="form-select bg-light border-0 mb-2" asp-items="Model.Cities"></select>
-
-                            <label class="small fw-bold text-muted">Звідки</label>
-                            <input name="PickupAddress" id="PickupAddress" class="form-control bg-light border-0 mb-2" onchange="calcDist()" required />
-
-                            <label class="small fw-bold text-muted">Куди</label>
-                            <input name="DropoffAddress" id="DropoffAddress" class="form-control bg-light border-0 mb-2" onchange="calcDist()" required />
-
-                            <label class="small fw-bold text-muted">Відстань (км)</label>
-                            <input name="Distance" id="Distance" type="text" class="form-control bg-light border-0" readonly />
-                        </div>
-
-                        <div class="col-md-4">
-                            <h6 class="fw-bold text-primary mb-3">Оплата</h6>
-                            <label class="small fw-bold text-muted">Метод оплати</label>
-                            <select name="PaymentMethodId" id="PaymentMethodId" class="form-select bg-light border-0 mb-2" asp-items="Model.PaymentMethods"></select>
-
-                            <label class="small fw-bold text-muted">Націнка клієнта (₴)</label>
-                            <input name="ClientPriceBonus" id="ClientPriceBonus" type="text" class="form-control bg-light border-0 mb-2" value="0" oninput="updateTotal()" />
-
-                            <label class="small fw-bold text-muted">Сума (₴)</label>
-                            <input name="TotalPrice" id="TotalPrice" type="text" class="form-control bg-light border-0 fw-bold fs-5 text-success" readonly />
-
-                            <label class="small fw-bold text-muted mt-2">Послуги</label>
-                            <div class="bg-light p-2 rounded" style="max-height: 120px; overflow-y: auto;">
-                                @foreach (var s in Model.AvailableServices)
-                                {
-                                    <div class="form-check small">
-                                        <input class="form-check-input service-check" type="checkbox" name="SelectedServiceIds" value="@s.Id" data-price="@s.Price.ToString(System.Globalization.CultureInfo.InvariantCulture)" id="srv_@s.Id">
-                                        <label class="form-check-label">@s.Name (+@s.Price ₴)</label>
-                                    </div>
-                                }
+                            <label>Статус</label>
+                            <select name="OrderStatusId" id="OrderStatusId" class="form-select mb-2" asp-items="Model.Statuses"></select>
+                            <div id="cancellationReasonContainer" style="display:none;">
+                                <label class="text-danger">Причина скасування</label>
+                                <select name="CancellationReasonId" id="CancellationReasonId" class="form-select border-danger mb-2" asp-items="Model.CancellationReasons">
+                                    <option value="">-- Оберіть причину --</option>
+                                </select>
                             </div>
                         </div>
-                    </div>
-                    <div class="mt-3">
-                        <label class="small fw-bold text-muted">Коментар</label>
-                        <textarea name="ClientComment" id="ClientComment" class="form-control bg-light border-0" rows="2"></textarea>
+                        <div class="col-md-4">
+                            <label>Місто <span id="cityMultiplierBadge" class="badge bg-light text-dark ms-1" style="display:none;"></span></label>
+                            <select name="CityId" id="CityId" class="form-select mb-2" asp-items="Model.Cities"></select>
+                            <label>Звідки</label>
+                            <input name="PickupAddress" id="PickupAddress" class="form-control mb-2" onchange="calcDist()" required />
+                            <label>Куди</label>
+                            <input name="DropoffAddress" id="DropoffAddress" class="form-control mb-2" onchange="calcDist()" required />
+                            <label>Відстань (км)</label>
+                            <input name="Distance" id="Distance" type="text" class="form-control mb-2" readonly />
+                            <label>Клас авто</label>
+                            <select name="VehicleClassId" id="VehicleClassId" class="form-select" asp-items="Model.VehicleClasses"></select>
+                        </div>
+                        <div class="col-md-4">
+                            <label>Оплата</label>
+                            <select name="PaymentMethodId" id="PaymentMethodId" class="form-select mb-2" asp-items="Model.PaymentMethods"></select>
+                            <label>Промокод</label>
+                            <select name="PromoCodeId" id="PromoCodeId" class="form-select mb-2" asp-items="Model.PromoCodes">
+                                <option value="">-- Без промокоду --</option>
+                            </select>
+                            <label>Чайові / Надбавка (₴)</label>
+                            <input name="ClientPriceBonus" id="ClientPriceBonus" type="text" class="form-control mb-2" value="0" oninput="updateTotal()" />
+                            <label>Послуги</label>
+                            <div class="bg-light p-2 rounded mb-2" style="max-height: 100px; overflow-y: auto;">
+                                @if (Model.AvailableServices != null)
+                                {
+                                    foreach (var s in Model.AvailableServices)
+                                    {
+                                        <div class="form-check">
+                                            <input class="form-check-input service-check" type="checkbox" name="SelectedServiceIds" value="@s.Id" data-price="@s.Price.ToString(System.Globalization.CultureInfo.InvariantCulture)" id="srv_@s.Id">
+                                            <label class="form-check-label">@s.Name (+@s.Price)</label>
+                                        </div>
+                                    }
+                                }
+                            </div>
+                            <label>Підсумкова сума (₴)</label>
+                            <input name="TotalPrice" id="TotalPrice" type="text" class="form-control fs-4 fw-bold text-warning" readonly />
+                        </div>
                     </div>
                 </div>
-
-                <div class="modal-footer border-0 p-4">
+                <div class="modal-footer p-4 pt-0">
                     <button type="button" class="btn btn-light" data-bs-dismiss="modal">Закрити</button>
-                    <button type="submit" id="saveBtn" class="btn btn-primary px-5" style="background-color: #1E3A8A;">Зберегти</button>
+                    <button type="submit" id="saveBtn" class="btn btn-primary">Зберегти</button>
                 </div>
             </form>
         </div>
     </div>
 </div>
 
-<script>
+<!--<script>
     let currentCityMultiplier = 1.0;
 
     function searchClient(phone) {
@@ -248,4 +250,4 @@
             }
         });
     });
-</script>
+</script> -->

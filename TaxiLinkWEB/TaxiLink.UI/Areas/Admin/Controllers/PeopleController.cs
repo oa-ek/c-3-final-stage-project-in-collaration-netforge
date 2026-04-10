@@ -14,17 +14,23 @@ namespace TaxiLink.UI.Admin_areas.Controllers
         private readonly IGenericRepository<User> _userRepo;
         private readonly IGenericRepository<Driver> _driverRepo;
         private readonly IGenericRepository<Role> _roleRepo;
+        private readonly IGenericRepository<Review> _reviewRepo;
+        private readonly IGenericRepository<Blacklist> _blacklistRepo;
         private readonly IWebHostEnvironment _env;
 
         public PeopleController(
             IGenericRepository<User> userRepo,
             IGenericRepository<Driver> driverRepo,
             IGenericRepository<Role> roleRepo,
+            IGenericRepository<Review> reviewRepo,
+            IGenericRepository<Blacklist> blacklistRepo,
             IWebHostEnvironment env)
         {
             _userRepo = userRepo;
             _driverRepo = driverRepo;
             _roleRepo = roleRepo;
+            _reviewRepo = reviewRepo;
+            _blacklistRepo = blacklistRepo;
             _env = env;
         }
 
@@ -33,17 +39,30 @@ namespace TaxiLink.UI.Admin_areas.Controllers
             var allUsers = await _userRepo.GetAllAsync();
             var allDrivers = await _driverRepo.GetAllAsync();
             var roles = await _roleRepo.GetAllAsync();
+
             int clientRoleId = roles.FirstOrDefault(r => r.Name.ToLower().Contains("client") || r.Name.ToLower().Contains("user"))?.Id ?? 3;
             var clients = allUsers.Where(u => u.RoleId == clientRoleId).ToList();
+
             foreach (var d in allDrivers)
             {
                 d.User = allUsers.FirstOrDefault(u => u.Id == d.UserId);
             }
 
+            var reviews = await _reviewRepo.GetAllAsync();
+            var blacklists = await _blacklistRepo.GetAllAsync();
+
+            foreach (var b in blacklists)
+            {
+                b.BlockerUser = allUsers.FirstOrDefault(u => u.Id == b.BlockerUserId);
+                b.BlockedUser = allUsers.FirstOrDefault(u => u.Id == b.BlockedUserId);
+            }
+
             var model = new AdminViewModels.PeoplePageViewModel
             {
                 Clients = clients,
-                Drivers = allDrivers
+                Drivers = allDrivers,
+                Reviews = reviews,
+                Blacklists = blacklists
             };
             return View(model);
         }
@@ -77,6 +96,7 @@ namespace TaxiLink.UI.Admin_areas.Controllers
                     existingUser.Email = user.Email;
                     existingUser.Rating = user.Rating;
                     existingUser.PrefersSilentRide = user.PrefersSilentRide;
+                    existingUser.PrefersNoMusic = user.PrefersNoMusic;
                     if (!string.IsNullOrEmpty(user.AvatarPath)) existingUser.AvatarPath = user.AvatarPath;
 
                     _userRepo.Update(existingUser);
@@ -108,6 +128,7 @@ namespace TaxiLink.UI.Admin_areas.Controllers
                 CommissionRate = driver.CommissionRate,
                 WalletBalance = driver.WalletBalance,
                 IsVerified = driver.IsVerified,
+                IsWorkingMode = driver.IsWorkingMode,
                 AvatarPath = user?.AvatarPath
             });
         }
@@ -143,7 +164,8 @@ namespace TaxiLink.UI.Admin_areas.Controllers
                     DateOfBirth = dto.DateOfBirth,
                     CommissionRate = dto.CommissionRate,
                     WalletBalance = dto.WalletBalance,
-                    IsVerified = dto.IsVerified
+                    IsVerified = dto.IsVerified,
+                    IsWorkingMode = dto.IsWorkingMode
                 };
                 await _driverRepo.AddAsync(newDriver);
             }
@@ -171,6 +193,7 @@ namespace TaxiLink.UI.Admin_areas.Controllers
                     existingDriver.CommissionRate = dto.CommissionRate;
                     existingDriver.WalletBalance = dto.WalletBalance;
                     existingDriver.IsVerified = dto.IsVerified;
+                    existingDriver.IsWorkingMode = dto.IsWorkingMode;
 
                     _driverRepo.Update(existingDriver);
                 }
@@ -193,6 +216,43 @@ namespace TaxiLink.UI.Admin_areas.Controllers
             var driver = await _driverRepo.GetByIdAsync(id);
             if (driver != null) { _driverRepo.Delete(driver); await _driverRepo.SaveChangesAsync(); }
             return RedirectToAction(nameof(Index));
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> VerifyDriver(int id, bool approve)
+        {
+            var driver = await _driverRepo.GetByIdAsync(id);
+            if (driver != null)
+            {
+                driver.IsVerified = approve;
+                _driverRepo.Update(driver);
+                await _driverRepo.SaveChangesAsync();
+            }
+            return Ok();
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> DeleteReview(int id)
+        {
+            var review = await _reviewRepo.GetByIdAsync(id);
+            if (review != null)
+            {
+                _reviewRepo.Delete(review);
+                await _reviewRepo.SaveChangesAsync();
+            }
+            return Ok();
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> RemoveFromBlacklist(int id)
+        {
+            var blacklistRecord = await _blacklistRepo.GetByIdAsync(id);
+            if (blacklistRecord != null)
+            {
+                _blacklistRepo.Delete(blacklistRecord);
+                await _blacklistRepo.SaveChangesAsync();
+            }
+            return Ok();
         }
 
         private async Task<string?> ProcessAvatarAsync(IFormFile? file, string? currentPath)

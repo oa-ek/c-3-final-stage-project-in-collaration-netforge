@@ -10,7 +10,6 @@ using static TaxiLink.UI.Admin_areas.Models.AdminViewModels;
 [Authorize(Roles = "Admin")]
 public class OrderController : Controller
 {
-
     private readonly IOrderService _orderService;
     private readonly IUserService _userService;
     private readonly IDriverService _driverService;
@@ -20,7 +19,9 @@ public class OrderController : Controller
     private readonly IGenericRepository<AdditionalService> _serviceRepo;
     private readonly IGenericRepository<OrderStatus> _statusRepo;
     private readonly IGenericRepository<Order> _orderBaseRepo;
-    private readonly IGenericRepository<OrderAdditionalService> _orderServicesLinkRepo; 
+    private readonly IGenericRepository<OrderAdditionalService> _orderServicesLinkRepo;
+    private readonly IGenericRepository<PromoCode> _promoRepo;
+    private readonly IGenericRepository<CancellationReason> _cancelRepo;
 
     public OrderController(
         IOrderService orderService,
@@ -32,7 +33,9 @@ public class OrderController : Controller
         IGenericRepository<AdditionalService> serviceRepo,
         IGenericRepository<OrderStatus> statusRepo,
         IGenericRepository<Order> orderBaseRepo,
-        IGenericRepository<OrderAdditionalService> orderServicesLinkRepo)
+        IGenericRepository<OrderAdditionalService> orderServicesLinkRepo,
+        IGenericRepository<PromoCode> promoRepo,
+        IGenericRepository<CancellationReason> cancelRepo)
     {
         _orderService = orderService;
         _userService = userService;
@@ -44,19 +47,31 @@ public class OrderController : Controller
         _statusRepo = statusRepo;
         _orderBaseRepo = orderBaseRepo;
         _orderServicesLinkRepo = orderServicesLinkRepo;
+        _promoRepo = promoRepo;
+        _cancelRepo = cancelRepo;
     }
 
     public async Task<IActionResult> Index()
     {
+        // ВИПРАВЛЕННЯ: Безпечно формуємо список водіїв, щоб уникнути NullReferenceException
+        var driversList = await _driverService.GetAllDriversAsync();
+        var safeDrivers = driversList.Select(d => new
+        {
+            Id = d.Id,
+            DisplayName = d.User != null ? d.User.FirstName : $"Водій #{d.Id}"
+        }).ToList();
+
         var model = new AdminViewModels.OrderPageViewModel
         {
             Orders = await _orderService.GetAllOrdersAsync(),
-            Drivers = new SelectList(await _driverService.GetAllDriversAsync(), "Id", "User.FirstName"),
+            Drivers = new SelectList(safeDrivers, "Id", "DisplayName"), // Передаємо безпечний список
             Cities = new SelectList(await _cityRepo.GetAllAsync(), "Id", "Name"),
             VehicleClasses = new SelectList(await _vClassRepo.GetAllAsync(), "Id", "Name"),
             PaymentMethods = new SelectList(await _payRepo.GetAllAsync(), "Id", "Name"),
             Statuses = new SelectList(await _statusRepo.GetAllAsync(), "Id", "Name"),
-            AvailableServices = await _serviceRepo.GetAllAsync()
+            PromoCodes = new SelectList(await _promoRepo.GetAllAsync(), "Id", "Code"),
+            CancellationReasons = new SelectList(await _cancelRepo.GetAllAsync(), "Id", "Name"),
+            AvailableServices = (await _serviceRepo.GetAllAsync()).ToList() // Гарантуємо створення списку
         };
         return View(model);
     }
@@ -77,7 +92,6 @@ public class OrderController : Controller
     }
 
     [HttpGet]
-    [HttpGet]
     public async Task<IActionResult> GetOrderDetails(int id)
     {
         var order = await _orderService.GetOrderFullDetailsAsync(id);
@@ -89,31 +103,30 @@ public class OrderController : Controller
 
         return Json(new
         {
-            order = new
-            {
-                id = order.Id,
-                userId = order.UserId,
-                passengerPhone = order.PassengerPhone,
-                passengerName = order.PassengerName,
-                driverId = order.DriverId,
-                vehicleClassId = order.VehicleClassId,
-                cityId = order.CityId,
-                pickupAddress = order.PickupAddress,
-                dropoffAddress = order.DropoffAddress,
-                distance = order.Distance,
-                paymentMethodId = order.PaymentMethodId,
-                clientPriceBonus = order.ClientPriceBonus,
-                totalPrice = order.TotalPrice,
-                orderStatusId = order.OrderStatusId,
-                clientComment = order.ClientComment,
-                cityMultiplier = city?.PriceMultiplier ?? 1m
-            },
-            serviceIds = serviceIds 
+            id = order.Id,
+            userId = order.UserId,
+            passengerPhone = order.PassengerPhone,
+            passengerName = order.PassengerName,
+            driverId = order.DriverId,
+            vehicleClassId = order.VehicleClassId,
+            cityId = order.CityId,
+            pickupAddress = order.PickupAddress,
+            dropoffAddress = order.DropoffAddress,
+            distance = order.Distance,
+            paymentMethodId = order.PaymentMethodId,
+            promoCodeId = order.PromoCodeId,
+            cancellationReasonId = order.CancellationReasonId,
+            clientPriceBonus = order.ClientPriceBonus,
+            totalPrice = order.TotalPrice,
+            orderStatusId = order.OrderStatusId,
+            clientComment = order.ClientComment,
+            cityMultiplier = city?.PriceMultiplier ?? 1m,
+            selectedServiceIds = serviceIds
         });
     }
 
     [HttpPost]
-    public async Task<IActionResult> Upsert(Order order, int[] SelectedServiceIds)
+    public async Task<IActionResult> UpsertOrder(Order order, int[] SelectedServiceIds)
     {
         if (order.UserId == 0)
         {
@@ -137,12 +150,12 @@ public class OrderController : Controller
         {
             order.CreatedAt = DateTime.Now;
             await _orderService.CreateOrderAsync(order);
-            await SaveOrderServicesAsync(order.Id, SelectedServiceIds); 
+            await SaveOrderServicesAsync(order.Id, SelectedServiceIds);
         }
         else
         {
             await _orderService.UpdateOrderAsync(order);
-            await SaveOrderServicesAsync(order.Id, SelectedServiceIds); 
+            await SaveOrderServicesAsync(order.Id, SelectedServiceIds);
         }
         return RedirectToAction(nameof(Index));
     }
@@ -162,6 +175,7 @@ public class OrderController : Controller
         }
         return RedirectToAction(nameof(Index));
     }
+
     private async Task SaveOrderServicesAsync(int orderId, int[] serviceIds)
     {
         var oldServices = (await _orderServicesLinkRepo.GetAllAsync()).Where(s => s.OrderId == orderId).ToList();

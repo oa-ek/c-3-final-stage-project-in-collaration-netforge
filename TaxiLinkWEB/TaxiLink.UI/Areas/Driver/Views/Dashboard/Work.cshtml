@@ -1,0 +1,65 @@
+﻿@model TaxiLink.UI.Areas.Driver.Models.DriverOrderViewModel
+@{
+    ViewData["Title"] = "Поточна робота";
+    Layout = "~/Areas/Driver/Views/Shared/_DriverLayout.cshtml";
+}
+
+<div class="work-wrapper">
+    <div id="map" style="width: 100%; height: 100%;"></div>
+
+    <div class="top-status-pill">
+        @Model.StatusName
+    </div>
+
+    <div class="active-order-card">
+        <div class="route-block">
+            <div class="route-line"></div>
+            <div class="route-step">
+                <div class="step-label">Початок маршруту</div>
+                <div class="step-address"><div class="dot-start"></div>@Model.PickupAddress</div>
+            </div>
+            <div class="route-step">
+                <div class="step-label">Кінець маршруту</div>
+                <div class="step-address"><div class="dot-end"></div>@Model.DropoffAddress</div>
+            </div>
+        </div>
+
+        <div class="passenger-block">
+            <div>
+                <div class="passenger-label">Пасажир</div>
+                <div class="passenger-name">@Model.PassengerName</div>
+            </div>
+            <div class="action-icons">
+                <button class="icon-btn icon-call"><i class="fa-solid fa-phone"></i></button>
+                <button class="icon-btn icon-msg"><i class="fa-solid fa-comment-dots"></i></button>
+            </div>
+        </div>
+
+        <div class="comment-box">
+            @Model.ClientComment
+        </div>
+
+        <div class="stats-row">
+            <div class="stat-item">
+                <div class="label">Відстань</div>
+                <div class="val">@Model.Distance км</div>
+            </div>
+            <div class="stat-item">
+                <div class="label">Час</div>
+                <div class="val"><i class="fa-regular fa-clock"></i> 15 хв</div>
+            </div>
+            <div class="stat-item" style="text-align: right;">
+                <div class="label">Вартість</div>
+                <div class="stat-price">@Model.TotalPrice ₴</div>
+            </div>
+        </div>
+
+        <button class="btn-start-ride">Почати поїздку</button>
+    </div>
+
+    <div class="bottom-dock">
+        <a href="/Driver/Dashboard/Index" class="dock-btn">Карта</a>
+        <a href="/Driver/Dashboard/Orders" class="dock-btn">Замовлення</a>
+        <a href="/Driver/Dashboard/Work" class="dock-btn active">Робота</a>
+    </div>
+</div>

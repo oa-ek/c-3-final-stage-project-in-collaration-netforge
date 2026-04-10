@@ -1,159 +1,234 @@
 ﻿@using TaxiLink.UI.Admin_areas.Models
 @model AdminViewModels.SettingsPageViewModel
 
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <div>
-        <h2 class="fw-bold">Системні налаштування</h2>
-        <p class="text-muted">Керування містами, послугами та статусами</p>
-    </div>
-</div>
+@{
+    ViewData["Title"] = "Налаштування системи";
+}
 
-<div class="card border-0 shadow-sm p-4" style="border-radius: 15px;">
-    <ul class="nav nav-pills mb-4" id="settingsTabs">
-        <li class="nav-item">
-            <button class="nav-link active" data-bs-toggle="pill" data-bs-target="#cities">Міста</button>
-        </li>
-        <li class="nav-item ms-2">
-            <button class="nav-link" data-bs-toggle="pill" data-bs-target="#services">Додаткові послуги</button>
-        </li>
-        <li class="nav-item ms-2">
-            <button class="nav-link" data-bs-toggle="pill" data-bs-target="#statuses">Статуси замовлень</button>
-        </li>
-    </ul>
-
-    <div class="tab-content">
-        <div class="tab-pane fade show active" id="cities">
-            <div class="d-flex justify-content-end mb-3">
-                <button class="btn btn-primary" style="background-color: #1E3A8A;" onclick="openCityModal(0, false)">
-                    <i class="fas fa-plus me-2"></i> Додати місто
-                </button>
+<div class="row">
+    <div class="col-md-12">
+        <div class="card card-nav-tabs">
+            <div class="card-header">
+                <div class="nav-tabs-navigation">
+                    <div class="nav-tabs-wrapper">
+                        <ul class="nav nav-tabs" data-tabs="tabs">
+                            <li class="nav-item">
+                                <a class="nav-link active" href="#cities" data-bs-toggle="tab">Міста</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="#vehicleclasses" data-bs-toggle="tab">Класи авто</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="#services" data-bs-toggle="tab">Послуги</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="#statuses" data-bs-toggle="tab">Статуси</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="#payments" data-bs-toggle="tab">Оплата</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="#reasons" data-bs-toggle="tab">Причини скасування</a>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
             </div>
-            <table class="table align-middle">
-                <thead class="text-muted small uppercase">
-                    <tr>
-                        <th>ID</th>
-                        <th>Назва міста</th>
-                        <th>Ціновий множник</th>
-                        <th class="text-end">Дії</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var c in Model.Cities)
-                    {
-                        <tr>
-                            <td class="fw-bold">#@c.Id</td>
-                            <td class="fw-bold">@c.Name</td>
-                            <td>@c.PriceMultiplier x</td>
-                            <td class="text-end">
-                                <button onclick="openCityModal(@c.Id, true)" class="btn btn-link text-muted p-1"><i class="fas fa-eye"></i></button>
-                                <button onclick="openCityModal(@c.Id, false)" class="btn btn-link text-muted p-1"><i class="fas fa-pencil-alt"></i></button>
-                                <form asp-action="DeleteCity" asp-route-id="@c.Id" method="post" class="d-inline" onsubmit="return confirm('Видалити місто?');">
-                                    <button type="submit" class="btn btn-link text-danger p-1"><i class="fas fa-trash"></i></button>
-                                </form>
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
-        </div>
+            <div class="card-body">
+                <div class="tab-content text-center">
 
-        <div class="tab-pane fade" id="services">
-            <div class="d-flex justify-content-end mb-3">
-                <button class="btn btn-primary" style="background-color: #1E3A8A;" onclick="openServiceModal(0, false)">
-                    <i class="fas fa-plus me-2"></i> Додати послугу
-                </button>
+                    <div class="tab-pane active" id="cities">
+                        <div class="d-flex justify-content-end mb-3">
+                            <button class="btn btn-sm btn-info" onclick="openCityModal(0, false)">Додати місто</button>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                    <tr><th>ID</th><th>Місто</th><th>Множник</th><th class="text-end">Дії</th></tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var c in Model.Cities)
+                                    {
+                                        <tr>
+                                            <td>#@c.Id</td>
+                                            <td class="text-start fw-bold text-warning">@c.Name</td>
+                                            <td><span class="badge bg-light text-dark">x @c.PriceMultiplier</span></td>
+                                            <td class="text-end">
+                                                <button onclick="openCityModal(@c.Id, false)" class="btn btn-link btn-sm text-success"><i class="fas fa-pencil-alt"></i></button>
+                                                <form asp-action="DeleteCity" asp-route-id="@c.Id" method="post" class="d-inline">
+                                                    <button type="submit" class="btn btn-link btn-sm text-danger"><i class="fas fa-trash"></i></button>
+                                                </form>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="tab-pane" id="vehicleclasses">
+                        <div class="d-flex justify-content-end mb-3">
+                            <button class="btn btn-sm btn-primary" onclick="openVehicleClassModal(0, false)">Створити клас</button>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                    <tr><th>ID</th><th>Назва</th><th>Подача</th><th>Ціна / км</th><th class="text-end">Дії</th></tr>
+                                </thead>
+                                <tbody>
+                                    @if (Model.VehicleClasses != null)
+                                    {
+                                        foreach (var vc in Model.VehicleClasses)
+                                        {
+                                            <tr>
+                                                <td>#@vc.Id</td>
+                                                <td class="text-start fw-bold">@vc.Name</td>
+                                                <td>@vc.BasePrice ₴</td>
+                                                <td>@vc.PricePerKm ₴</td>
+                                                <td class="text-end">
+                                                    <button onclick="openVehicleClassModal(@vc.Id, true)" class="btn btn-link btn-sm text-info"><i class="fas fa-eye"></i></button>
+                                                    <button onclick="openVehicleClassModal(@vc.Id, false)" class="btn btn-link btn-sm text-warning"><i class="fas fa-pencil-alt"></i></button>
+                                                </td>
+                                            </tr>
+                                        }
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="tab-pane" id="services">
+                        <div class="d-flex justify-content-end mb-3">
+                            <button class="btn btn-sm btn-info" onclick="openServiceModal(0, false)">Додати послугу</button>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                    <tr><th>ID</th><th>Назва</th><th>Ціна</th><th>Тип</th><th class="text-end">Дії</th></tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var s in Model.AdditionalServices)
+                                    {
+                                        <tr>
+                                            <td>#@s.Id</td>
+                                            <td class="text-start">@s.Name</td>
+                                            <td class="fw-bold">@s.Price @(s.IsPercentage ? "%" : "₴")</td>
+                                            <td><span class="badge @(s.IsPercentage ? "bg-secondary" : "bg-success")">@(s.IsPercentage ? "Відсоток" : "Фікс")</span></td>
+                                            <td class="text-end">
+                                                <button onclick="openServiceModal(@s.Id, false)" class="btn btn-link btn-sm text-success"><i class="fas fa-pencil-alt"></i></button>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="tab-pane" id="statuses">
+                        <div class="d-flex justify-content-end mb-3">
+                            <button class="btn btn-sm btn-info" onclick="openStatusModal(0, false)">Новий статус</button>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                    <tr><th>ID</th><th>Назва</th><th class="text-end">Дії</th></tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var st in Model.OrderStatuses)
+                                    {
+                                        <tr>
+                                            <td>#@st.Id</td>
+                                            <td class="text-start">@st.Name</td>
+                                            <td class="text-end">
+                                                <button onclick="openStatusModal(@st.Id, false)" class="btn btn-link btn-sm text-success"><i class="fas fa-pencil-alt"></i></button>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="tab-pane" id="payments">
+                        <div class="d-flex justify-content-end mb-3">
+                            <button class="btn btn-sm btn-info" onclick="openPaymentMethodModal(0, false)">Додати метод</button>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                    <tr><th>ID</th><th>Назва</th><th class="text-end">Дії</th></tr>
+                                </thead>
+                                <tbody>
+                                    @if (Model.PaymentMethods != null)
+                                    {
+                                        foreach (var pm in Model.PaymentMethods)
+                                        {
+                                            <tr>
+                                                <td>#@pm.Id</td>
+                                                <td class="text-start">@pm.Name</td>
+                                                <td class="text-end">
+                                                    <button onclick="openPaymentMethodModal(@pm.Id, false)" class="btn btn-link btn-sm text-success"><i class="fas fa-pencil-alt"></i></button>
+                                                </td>
+                                            </tr>
+                                        }
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="tab-pane" id="reasons">
+                        <div class="d-flex justify-content-end mb-3">
+                            <button class="btn btn-sm btn-info" onclick="openCancellationReasonModal(0, false)">Додати причину</button>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                    <tr><th>ID</th><th>Причина</th><th class="text-end">Дії</th></tr>
+                                </thead>
+                                <tbody>
+                                    @if (Model.CancellationReasons != null)
+                                    {
+                                        foreach (var cr in Model.CancellationReasons)
+                                        {
+                                            <tr>
+                                                <td>#@cr.Id</td>
+                                                <td class="text-start">@cr.Name</td>
+                                                <td class="text-end">
+                                                    <button onclick="openCancellationReasonModal(@cr.Id, false)" class="btn btn-link btn-sm text-success"><i class="fas fa-pencil-alt"></i></button>
+                                                    <form asp-action="DeleteCancellationReason" asp-route-id="@cr.Id" method="post" class="d-inline">
+                                                        <button type="submit" class="btn btn-link btn-sm text-danger"><i class="fas fa-trash"></i></button>
+                                                    </form>
+                                                </td>
+                                            </tr>
+                                        }
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                </div>
             </div>
-            <table class="table align-middle">
-                <thead class="text-muted small uppercase">
-                    <tr>
-                        <th>ID</th>
-                        <th>Назва послуги</th>
-                        <th>Додаткова ціна</th>
-                        <th>Тип</th>
-                        <th class="text-end">Дії</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var s in Model.AdditionalServices)
-                    {
-                        <tr>
-                            <td class="fw-bold">#@s.Id</td>
-                            <td class="fw-bold">@s.Name</td>
-                            <td>@s.Price @(s.IsPercentage ? "%" : "₴")</td>
-                            <td>
-                                @if (s.IsPercentage)
-                                {
-                                    <span class="badge-status status-progress">Відсоток</span>
-                                }
-                                else
-                                {
-
-                                    <span class="badge-status status-completed">Фіксована</span>
-                                }
-                            </td>
-                            <td class="text-end">
-                                <button onclick="openServiceModal(@s.Id, true)" class="btn btn-link text-muted p-1"><i class="fas fa-eye"></i></button>
-                                <button onclick="openServiceModal(@s.Id, false)" class="btn btn-link text-muted p-1"><i class="fas fa-pencil-alt"></i></button>
-                                <form asp-action="DeleteService" asp-route-id="@s.Id" method="post" class="d-inline" onsubmit="return confirm('Видалити послугу?');">
-                                    <button type="submit" class="btn btn-link text-danger p-1"><i class="fas fa-trash"></i></button>
-                                </form>
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
-        </div>
-
-        <div class="tab-pane fade" id="statuses">
-            <div class="d-flex justify-content-end mb-3">
-                <button class="btn btn-primary" style="background-color: #1E3A8A;" onclick="openStatusModal(0, false)">
-                    <i class="fas fa-plus me-2"></i> Додати статус
-                </button>
-            </div>
-            <table class="table align-middle">
-                <thead class="text-muted small uppercase">
-                    <tr>
-                        <th>ID</th>
-                        <th>Назва статусу</th>
-                        <th class="text-end">Дії</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var st in Model.OrderStatuses)
-                    {
-                        <tr>
-                            <td class="fw-bold">#@st.Id</td>
-                            <td class="fw-bold">@st.Name</td>
-                            <td class="text-end">
-                                <button onclick="openStatusModal(@st.Id, true)" class="btn btn-link text-muted p-1"><i class="fas fa-eye"></i></button>
-                                <button onclick="openStatusModal(@st.Id, false)" class="btn btn-link text-muted p-1"><i class="fas fa-pencil-alt"></i></button>
-                                <form asp-action="DeleteStatus" asp-route-id="@st.Id" method="post" class="d-inline" onsubmit="return confirm('Видалити статус?');">
-                                    <button type="submit" class="btn btn-link text-danger p-1"><i class="fas fa-trash"></i></button>
-                                </form>
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
         </div>
     </div>
 </div>
 
 <div class="modal fade" id="cityModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
+        <div class="modal-content">
             <form id="cityForm" asp-action="UpsertCity" method="post">
                 <input type="hidden" name="Id" id="c_Id" />
                 <div class="modal-body p-4">
                     <h5 class="fw-bold mb-4" id="cityModalTitle">Місто</h5>
-                    <label class="small fw-bold text-muted">Назва міста</label>
-                    <input name="Name" id="c_Name" class="form-control bg-light border-0 mb-3" required />
-                    <label class="small fw-bold text-muted">Ціновий множник (напр. 1,2)</label>
-                    <input name="PriceMultiplier" id="c_PriceMultiplier" type="text" class="form-control bg-light border-0 mb-2" required />
+                    <label>Назва міста</label>
+                    <input name="Name" id="c_Name" class="form-control mb-3" required />
+                    <label>Множник (напр. 1,2)</label>
+                    <input name="PriceMultiplier" id="c_PriceMultiplier" class="form-control mb-2" required />
                 </div>
-                <div class="modal-footer border-0 p-4 pt-0">
+                <div class="modal-footer p-4 pt-0">
                     <button type="button" class="btn btn-light" data-bs-dismiss="modal">Закрити</button>
-                    <button type="submit" id="citySaveBtn" class="btn btn-primary px-4" style="background-color: #1E3A8A;">Зберегти</button>
+                    <button type="submit" id="citySaveBtn" class="btn btn-primary">Зберегти</button>
                 </div>
             </form>
         </div>
@@ -162,23 +237,23 @@
 
 <div class="modal fade" id="serviceModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
+        <div class="modal-content">
             <form id="serviceForm" asp-action="UpsertService" method="post">
                 <input type="hidden" name="Id" id="s_Id" />
                 <div class="modal-body p-4">
                     <h5 class="fw-bold mb-4" id="serviceModalTitle">Послуга</h5>
-                    <label class="small fw-bold text-muted">Назва послуги</label>
-                    <input name="Name" id="s_Name" class="form-control bg-light border-0 mb-3" required />
-                    <label class="small fw-bold text-muted">Додаткова ціна</label>
-                    <input name="Price" id="s_Price" type="text" class="form-control bg-light border-0 mb-3" required />
+                    <label>Назва послуги</label>
+                    <input name="Name" id="s_Name" class="form-control mb-3" required />
+                    <label>Ціна</label>
+                    <input name="Price" id="s_Price" class="form-control mb-3" required />
                     <div class="form-check">
                         <input class="form-check-input" type="checkbox" name="IsPercentage" id="s_IsPercentage" value="true">
-                        <label class="form-check-label small fw-bold text-muted">Це відсоток від загальної вартості (не фіксована сума)</label>
+                        <label class="form-check-label">Це відсоток (%)</label>
                     </div>
                 </div>
-                <div class="modal-footer border-0 p-4 pt-0">
+                <div class="modal-footer p-4 pt-0">
                     <button type="button" class="btn btn-light" data-bs-dismiss="modal">Закрити</button>
-                    <button type="submit" id="serviceSaveBtn" class="btn btn-primary px-4" style="background-color: #1E3A8A;">Зберегти</button>
+                    <button type="submit" id="serviceSaveBtn" class="btn btn-primary">Зберегти</button>
                 </div>
             </form>
         </div>
@@ -187,24 +262,100 @@
 
 <div class="modal fade" id="statusModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
+        <div class="modal-content">
             <form id="statusForm" asp-action="UpsertStatus" method="post">
                 <input type="hidden" name="Id" id="st_Id" />
                 <div class="modal-body p-4">
-                    <h5 class="fw-bold mb-4" id="statusModalTitle">Статус замовлення</h5>
-                    <label class="small fw-bold text-muted">Назва статусу</label>
-                    <input name="Name" id="st_Name" class="form-control bg-light border-0 mb-2" required />
+                    <h5 class="fw-bold mb-4" id="statusModalTitle">Статус</h5>
+                    <label>Назва</label>
+                    <input name="Name" id="st_Name" class="form-control mb-2" required />
                 </div>
-                <div class="modal-footer border-0 p-4 pt-0">
+                <div class="modal-footer p-4 pt-0">
                     <button type="button" class="btn btn-light" data-bs-dismiss="modal">Закрити</button>
-                    <button type="submit" id="statusSaveBtn" class="btn btn-primary px-4" style="background-color: #1E3A8A;">Зберегти</button>
+                    <button type="submit" id="statusSaveBtn" class="btn btn-primary">Зберегти</button>
                 </div>
             </form>
         </div>
     </div>
 </div>
 
-<script>
+<div class="modal fade" id="vehicleClassModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <form id="vehicleClassForm" asp-action="UpsertVehicleClass" method="post">
+                <input type="hidden" name="Id" id="vc_Id" />
+                <div class="modal-body p-4">
+                    <h5 class="fw-bold mb-4" id="vehicleClassModalTitle">Клас Автомобіля</h5>
+                    <div class="row g-3">
+                        <div class="col-md-12">
+                            <label>Назва класу</label>
+                            <input name="Name" id="vc_Name" class="form-control mb-2" required />
+                            <label>Опис</label>
+                            <textarea name="Description" id="vc_Description" class="form-control mb-2" rows="2"></textarea>
+                        </div>
+                        <div class="col-md-6">
+                            <label>Ціна подачі (BasePrice)</label>
+                            <input name="BasePrice" id="vc_BasePrice" class="form-control mb-2" required />
+                            <label>Ціна за 1 км (Місто)</label>
+                            <input name="PricePerKm" id="vc_PricePerKm" class="form-control mb-2" required />
+                            <label>Ціна за 1 км (За містом)</label>
+                            <input name="PricePerKmOutsideCity" id="vc_PricePerKmOutsideCity" class="form-control mb-2" required />
+                        </div>
+                        <div class="col-md-6">
+                            <label>Ціна хвилини очікування</label>
+                            <input name="PricePerMinuteWaiting" id="vc_PricePerMinuteWaiting" class="form-control mb-2" required />
+                            <label>Штраф за скасування</label>
+                            <input name="CancellationFee" id="vc_CancellationFee" class="form-control mb-2" required />
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer p-4 pt-0">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Закрити</button>
+                    <button type="submit" id="vehicleClassSaveBtn" class="btn btn-primary">Зберегти</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="paymentMethodModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form id="paymentMethodForm" asp-action="UpsertPaymentMethod" method="post">
+                <input type="hidden" name="Id" id="pm_Id" />
+                <div class="modal-body p-4">
+                    <h5 class="fw-bold mb-4" id="paymentMethodModalTitle">Метод оплати</h5>
+                    <label>Назва</label>
+                    <input name="Name" id="pm_Name" class="form-control mb-2" required />
+                </div>
+                <div class="modal-footer p-4 pt-0">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Закрити</button>
+                    <button type="submit" id="paymentMethodSaveBtn" class="btn btn-primary">Зберегти</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="cancellationReasonModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form id="cancellationReasonForm" asp-action="UpsertCancellationReason" method="post">
+                <input type="hidden" name="Id" id="cr_Id" />
+                <div class="modal-body p-4">
+                    <h5 class="fw-bold mb-4" id="cancellationReasonModalTitle">Причина скасування</h5>
+                    <label>Текст причини</label>
+                    <input name="Name" id="cr_Name" class="form-control mb-2" required />
+                </div>
+                <div class="modal-footer p-4 pt-0">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Закрити</button>
+                    <button type="submit" id="cancellationReasonSaveBtn" class="btn btn-primary">Зберегти</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<!--<script>
     function openCityModal(id, viewOnly) {
         $('#cityForm')[0].reset();
         $('#c_Id').val(id);
@@ -280,4 +431,4 @@
         }
         $('#statusModal').modal('show');
     }
-</script>
+</!--> -->
