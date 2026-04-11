@@ -7,7 +7,10 @@
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.css" />
+
     <link rel="stylesheet" href="~/css/driver-cabinet.css" asp-append-version="true" />
 </head>
 <body>
@@ -35,7 +38,9 @@
             <a href="/Driver/Dashboard/Wallet" class="nav-item @(currentAction == "Wallet" ? "active" : "")">
                 <i class="fa-solid fa-wallet"></i> Гаманець
             </a>
-            
+            <a href="/Driver/Dashboard/News" class="nav-item @(currentAction == "News" ? "active" : "")">
+                <i class="fa-regular fa-newspaper"></i> Новини
+            </a>
         </nav>
         <a href="/Auth/Logout" class="logout-btn"><i class="fa-solid fa-arrow-right-from-bracket"></i> Вийти з акаунту</a>
     </aside>
@@ -50,19 +55,30 @@
                     <span class="slider"></span>
                 </label>
             </div>
-
             <div class="top-stats">
                 <div class="balance-badge"><i class="fa-solid fa-wallet text-muted"></i> @(ViewBag.WalletBalance ?? "0") ₴</div>
                 <div class="rating-badge"><i class="fa-solid fa-star text-warning"></i> @(ViewBag.Rating ?? "5.0")</div>
-                <div class="avatar-mini">
-                    <i class="fa-solid fa-user"></i>
-                </div>
+
+                <a href="/Driver/Dashboard/Profile" class="avatar-mini" style="text-decoration: none; padding: 0; overflow: hidden; display: flex; align-items: center; justify-content: center;">
+                    @if (!string.IsNullOrEmpty((string)ViewBag.AvatarPath))
+                    {
+                        <img src="@ViewBag.AvatarPath" alt="Профіль" style="width: 100%; height: 100%; object-fit: cover;" />
+                    }
+                    else
+                    {
+                        <i class="fa-solid fa-user" style="color: black;"></i>
+                    }
+                </a>
             </div>
         </header>
         @RenderBody()
     </main>
+
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.js"></script>
+
     <script src="~/js/driver-cabinet.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>

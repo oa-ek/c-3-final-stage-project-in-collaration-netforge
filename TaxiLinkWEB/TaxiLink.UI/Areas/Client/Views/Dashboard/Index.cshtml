@@ -1,0 +1,146 @@
+﻿@using TaxiLink.Domain.Models
+@{
+    Layout = "_Layout";
+}
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.css" />
+
+<style>
+
+    #map {
+        height: 450px;
+        width: 100%;
+        border-radius: 20px;
+        margin-bottom: 20px;
+        border: 2px solid #ddd;
+        z-index: 1; 
+    }
+
+    .order-panel {
+        background: #f8f9fa;
+        padding: 25px;
+        border-radius: 20px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    }
+</style>
+
+<div class="container mt-4">
+    <h2 class="fw-bold mb-4">Куди їдемо?</h2>
+
+    <div id="map"></div>
+
+    <div class="order-panel">
+        <form asp-action="Confirm" method="post">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label fw-bold">Звідки</label>
+                    <input type="text" name="pickup" id="pickup" class="form-control py-3" placeholder="Вул. Хрещатик, 1" required />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-bold">Куди</label>
+                    <input type="text" name="dropoff" id="dropoff" class="form-control py-3" placeholder="Аеропорт Бориспіль" required />
+                </div>
+
+                <input type="hidden" name="distance" id="distance_input" value="0" />
+
+                <div class="col-12 mt-4">
+                    <label class="form-label d-block fw-bold">Оберіть клас авто:</label>
+                    <div class="d-flex flex-wrap gap-3">
+                        @foreach (var vc in (IEnumerable<VehicleClass>)ViewBag.VehicleClasses)
+                        {
+                            <div class="form-check border p-3 rounded-4 flex-fill" style="min-width: 150px; background: white;">
+                                <input class="form-check-input ms-0 me-2" type="radio" name="vehicleClassId" value="@vc.Id" id="class_@vc.Id" required>
+                                <label class="form-check-label" for="class_@vc.Id">
+                                    <strong>@vc.Name</strong><br />
+                                    <span class="text-success fw-bold">@vc.BasePrice ₴</span>
+                                </label>
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <div class="col-12 text-end mt-4">
+                    <button type="submit" class="btn btn-warning btn-lg px-5 py-3 fw-bold shadow">
+                        Підтвердити маршрут <i class="fa-solid fa-arrow-right ms-2"></i>
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.js"></script>
+
+    <script>
+       
+        var map = L.map('map').setView([50.4501, 30.5234], 12);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        var control = null;
+        var coordsA = null;
+        var coordsB = null;
+
+        async function geocode(address) {
+            if (address.length < 4) return null;
+            try {
+                let response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}, Київ`);
+                let data = await response.json();
+                if (data.length > 0) {
+                    return L.latLng(data[0].lat, data[0].lon);
+                }
+            } catch (e) { console.error("Помилка геокодування", e); }
+            return null;
+        }
+
+        document.getElementById('pickup').addEventListener('change', async function() {
+            coordsA = await geocode(this.value);
+            updateRoute();
+        });
+
+        document.getElementById('dropoff').addEventListener('change', async function() {
+            coordsB = await geocode(this.value);
+            updateRoute();
+        });
+
+        function updateRoute() {
+            if (coordsA && coordsB) {
+                if (control) {
+                    map.removeControl(control);
+                }
+
+                control = L.Routing.control({
+                    waypoints: [coordsA, coordsB],
+                    lineOptions: {
+                        styles: [{ color: '#2563eb', weight: 6, opacity: 0.8 }] 
+                    },
+                    routeWhileDragging: false,
+                    show: false,
+                    addWaypoints: false,
+                    createMarker: function(i, wp) {
+                        return L.marker(wp.latLng, {
+                            draggable: false,
+                            icon: L.divIcon({
+                                className: 'custom-div-icon',
+                                html: `<div style="background-color:${i === 0 ? '#10b981' : '#ef4444'}; width:12px; height:12px; border-radius:50%; border:2px solid white;"></div>`,
+                                iconSize: [12, 12],
+                                iconAnchor: [6, 6]
+                            })
+                        });
+                    }
+                }).on('routesfound', function(e) {
+                    var summary = e.routes[0].summary;
+                    var dist = (summary.totalDistance / 1000).toFixed(2);
+                    document.getElementById('distance_input').value = dist.replace('.', ',');
+                    console.log("Дистанція знайдена: " + dist + " км");
+                }).addTo(map);
+                map.fitBounds(L.latLngBounds(coordsA, coordsB));
+            }
+        }
+    </script>
+}

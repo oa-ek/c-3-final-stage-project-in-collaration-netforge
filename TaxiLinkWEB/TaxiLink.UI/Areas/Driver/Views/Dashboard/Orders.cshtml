@@ -20,7 +20,6 @@
             <div style="grid-column: 1 / -1; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 400px; text-align: center;">
                 <div style="font-size: 60px; color: rgba(255,255,255,0.05); margin-bottom: 20px;"><i class="fa-solid fa-clipboard-list"></i></div>
                 <h3 style="font-weight: 700; margin-bottom: 10px;">Немає замовлень для відображення</h3>
-                <p style="color: var(--text-muted); max-width: 400px; font-size: 14px;">Якщо ви використовуєте фільтри, увімкніть їх та переведіть у режим "Автовзяття".</p>
             </div>
         }
         else
@@ -29,19 +28,26 @@
             {
                 <div class="order-card">
                     <div class="order-card-header">
-                        <div class="order-time">@(order.ScheduledTime.HasValue ? $"Завтра, {order.ScheduledTime.Value:HH:mm}" : (order.StatusName == "Завершено" ? $"Сьогодні, {order.CreatedAt:HH:mm}" : "Зараз"))</div>
+                        <div class="order-time">
+                            @if (order.ScheduledTime.HasValue && order.ScheduledTime.Value.Year > 2000)
+                            {
+                                <span class="text-warning"><i class="fa-regular fa-clock"></i> @order.ScheduledTime.Value.ToString("dd.MM HH:mm")</span>
+                            }
+                            else
+                            {
+                                <span><i class="fa-solid fa-bolt"></i> Сьогодні, @order.CreatedAt.ToString("HH:mm")</span>
+                            }
+                        </div>
                         <div class="order-price">@order.TotalPrice ₴</div>
                     </div>
 
                     <div class="route-container">
                         <div class="route-line"></div>
                         <div class="route-point">
-                            <div class="dot-green"></div>
-                            @order.PickupAddress
+                            <div class="dot-green"></div>@order.PickupAddress
                         </div>
                         <div class="route-point">
-                            <div class="dot-red"></div>
-                            @order.DropoffAddress
+                            <div class="dot-red"></div>@order.DropoffAddress
                             <div class="order-meta mt-2">
                                 <span>@order.Distance км</span>
                                 <span>@order.PaymentMethodName</span>
@@ -50,13 +56,38 @@
                         </div>
                     </div>
 
-                    <div class="order-card-footer">
+                    <div class="mb-3 d-flex flex-wrap gap-2 p-2 rounded" style="background: rgba(0,0,0,0.2);">
+                        <span class="text-muted w-100" style="font-size: 10px; text-transform: uppercase;">Послуги:</span>
+                        @if (order.SelectedServices != null && order.SelectedServices.Any())
+                        {
+                            foreach (var srv in order.SelectedServices)
+                            {
+                                <span class="badge rounded-pill bg-warning text-dark border-0">@srv</span>
+                            }
+                        }
+                        else
+                        {
+                            <span class="text-white-50" style="font-size: 11px;">Додаткових послуг немає</span>
+                        }
+                    </div>
+
+                    <div class="order-card-footer mt-auto">
                         @{
                             string badgeClass = "searching";
                             if (order.StatusName.Contains("Завершено")) badgeClass = "completed";
                             if (order.StatusName.Contains("Заплановано")) badgeClass = "planned";
                         }
-                        <div class="status-badge @badgeClass">@order.StatusName</div>
+
+                        @if (order.StatusName == "Пошук" || order.StatusName == "Очікується")
+                        {
+                            <button class="btn btn-warning btn-sm fw-bold w-100 py-2 text-dark" onclick="acceptOrder(@order.Id)">
+                                Прийняти замовлення
+                            </button>
+                        }
+                        else
+                        {
+                            <div class="status-badge @badgeClass">@order.StatusName</div>
+                        }
                     </div>
                 </div>
             }
@@ -68,4 +99,4 @@
         <a href="/Driver/Dashboard/Orders" class="dock-btn active">Замовлення</a>
         <a href="/Driver/Dashboard/Work" class="dock-btn">Робота</a>
     </div>
-</div>
+</div></div>

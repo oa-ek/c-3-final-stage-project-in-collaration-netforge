@@ -5,61 +5,128 @@
 }
 
 <div class="work-wrapper">
-    <div id="map" style="width: 100%; height: 100%;"></div>
+    @if (Model.Id == 0)
+    {
+        <div class="d-flex flex-column align-items-center justify-content-center h-100 text-center px-4">
+            <div style="font-size: 60px; color: rgba(255,255,255,0.05); margin-bottom: 20px;"><i class="fa-solid fa-car-on"></i></div>
+            <h3 class="fw-bold">Активних замовлень немає</h3>
+            <p class="text-muted small">Перейдіть у вкладку "Замовлення", щоб взяти нове.</p>
+        </div>
+    }
+    else
+    {
+        <div id="map" style="width: 100%; height: 100%;"></div>
+        <div class="top-status-pill">@Model.StatusName</div>
 
-    <div class="top-status-pill">
-        @Model.StatusName
+        <div class="active-order-card">
+            <div class="route-block">
+                <div class="route-line"></div>
+                <div class="route-step">
+                    <div class="step-label">Початок маршруту</div>
+                    <div class="step-address" id="pickup-addr"><div class="dot-start"></div>@Model.PickupAddress</div>
+                </div>
+                <div class="route-step">
+                    <div class="step-label">Кінець маршруту</div>
+                    <div class="step-address" id="dropoff-addr"><div class="dot-end"></div>@Model.DropoffAddress</div>
+                </div>
+            </div>
+
+            <div class="services-chips mb-3 d-flex flex-wrap gap-2 p-2 rounded" style="background: rgba(0,0,0,0.2);">
+                <div class="text-muted w-100" style="font-size: 10px; text-transform: uppercase;">Опції замовлення:</div>
+                @if (Model.SelectedServices != null && Model.SelectedServices.Any())
+                {
+                    foreach (var srv in Model.SelectedServices)
+                    {
+                        <span class="badge bg-warning text-dark px-2 py-1 border-0">@srv</span>
+                    }
+                }
+                else
+                {
+                    <span class="text-white-50" style="font-size: 11px;">Додаткових послуг немає</span>
+                }
+            </div>
+
+            <div class="passenger-block">
+                <div>
+                    <div class="passenger-label">Пасажир</div>
+                    <div class="passenger-name text-warning">@Model.PassengerName</div>
+                </div>
+                <div class="action-icons">
+                    <a href="tel:000" class="icon-btn icon-call"><i class="fa-solid fa-phone"></i></a>
+                    <button class="icon-btn icon-msg"><i class="fa-solid fa-comment-dots"></i></button>
+                </div>
+            </div>
+
+            @if (!string.IsNullOrEmpty(Model.ClientComment))
+            {
+                <div class="comment-box">"@Model.ClientComment"</div>
+            }
+
+            <div class="stats-row border-top border-white border-opacity-10 pt-3">
+                <div class="stat-item">
+                    <div class="label">Орієнтовний час</div>
+                    <div class="val text-success" id="arrival-time">рахуємо...</div>
+                </div>
+                <div class="stat-item text-end">
+                    <div class="label">Вартість</div>
+                    <div class="stat-price">@Model.TotalPrice ₴</div>
+                </div>
+            </div>
+
+            <div class="d-flex gap-2 mt-4">
+                <button class="btn btn-outline-danger flex-fill py-3 fw-bold" data-bs-toggle="modal" data-bs-target="#cancelModal">Скасувати</button>
+
+                @if (Model.StatusName.Contains("до клієнта") || Model.StatusName.Contains("Прийнято"))
+                {
+                    <button class="btn btn-warning flex-fill py-3 fw-bold text-dark" onclick="updateRideStatus('StartRide', @Model.Id)">Почати поїздку</button>
+                }
+                else
+                {
+                    <button class="btn btn-success flex-fill py-3 fw-bold text-white" data-bs-toggle="modal" data-bs-target="#finishModal">Завершити</button>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+<div class="modal fade" id="cancelModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark border-secondary text-white" style="border-radius: 20px;">
+            <div class="modal-body p-4">
+                <h5 class="fw-bold mb-3 text-center">Скасувати замовлення?</h5>
+                <p class="small text-white-50 mb-3 text-center">Буде нараховано штраф згідно з тарифом.</p>
+                <select id="cancelReasonId" class="form-select bg-secondary border-0 text-white mb-4 py-2">
+                    @if (ViewBag.CancelReasons != null)
+                    {
+                        foreach (var reason in (IEnumerable<TaxiLink.Domain.Models.CancellationReason>)ViewBag.CancelReasons)
+                        {
+                            <option value="@reason.Id">@reason.Name</option>
+                        }
+                    }
+                </select>
+                <button class="btn btn-danger w-100 py-3 fw-bold" onclick="submitCancel(@Model.Id)">Підтвердити скасування</button>
+            </div>
+        </div>
     </div>
+</div>
 
-    <div class="active-order-card">
-        <div class="route-block">
-            <div class="route-line"></div>
-            <div class="route-step">
-                <div class="step-label">Початок маршруту</div>
-                <div class="step-address"><div class="dot-start"></div>@Model.PickupAddress</div>
-            </div>
-            <div class="route-step">
-                <div class="step-label">Кінець маршруту</div>
-                <div class="step-address"><div class="dot-end"></div>@Model.DropoffAddress</div>
+<div class="modal fade" id="finishModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark border-secondary text-white text-center" style="border-radius: 25px;">
+            <div class="modal-body p-4">
+                <div class="display-4 text-warning mb-3"><i class="fa-solid fa-star"></i></div>
+                <h5 class="fw-bold mb-1">Поїздка завершена!</h5>
+                <p class="text-white-50 small mb-4">Оцініть пасажира @Model.PassengerName</p>
+
+                <div class="d-flex justify-content-center gap-2 mb-4 fs-2 text-warning" id="rating-stars">
+                    <i class="fa-regular fa-star cursor-pointer" data-val="1"></i>
+                    <i class="fa-regular fa-star cursor-pointer" data-val="2"></i>
+                    <i class="fa-regular fa-star cursor-pointer" data-val="3"></i>
+                    <i class="fa-regular fa-star cursor-pointer" data-val="4"></i>
+                    <i class="fa-solid fa-star cursor-pointer" data-val="5"></i>
+                </div>
+                <button class="btn btn-warning w-100 py-3 fw-bold text-dark" onclick="submitFinish(@Model.Id)">Надіслати та в Гаманець</button>
             </div>
         </div>
-
-        <div class="passenger-block">
-            <div>
-                <div class="passenger-label">Пасажир</div>
-                <div class="passenger-name">@Model.PassengerName</div>
-            </div>
-            <div class="action-icons">
-                <button class="icon-btn icon-call"><i class="fa-solid fa-phone"></i></button>
-                <button class="icon-btn icon-msg"><i class="fa-solid fa-comment-dots"></i></button>
-            </div>
-        </div>
-
-        <div class="comment-box">
-            @Model.ClientComment
-        </div>
-
-        <div class="stats-row">
-            <div class="stat-item">
-                <div class="label">Відстань</div>
-                <div class="val">@Model.Distance км</div>
-            </div>
-            <div class="stat-item">
-                <div class="label">Час</div>
-                <div class="val"><i class="fa-regular fa-clock"></i> 15 хв</div>
-            </div>
-            <div class="stat-item" style="text-align: right;">
-                <div class="label">Вартість</div>
-                <div class="stat-price">@Model.TotalPrice ₴</div>
-            </div>
-        </div>
-
-        <button class="btn-start-ride">Почати поїздку</button>
-    </div>
-
-    <div class="bottom-dock">
-        <a href="/Driver/Dashboard/Index" class="dock-btn">Карта</a>
-        <a href="/Driver/Dashboard/Orders" class="dock-btn">Замовлення</a>
-        <a href="/Driver/Dashboard/Work" class="dock-btn active">Робота</a>
     </div>
 </div>

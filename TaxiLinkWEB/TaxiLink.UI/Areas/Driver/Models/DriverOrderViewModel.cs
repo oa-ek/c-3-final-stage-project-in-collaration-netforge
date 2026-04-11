@@ -15,5 +15,6 @@
         public string PassengerName { get; set; }
         public decimal PassengerRating { get; set; }
         public string ClientComment { get; set; }
+        public List<string> SelectedServices { get; set; } = new List<string>();
     }
 }
