@@ -32,7 +32,9 @@
             <a href="/Driver/Dashboard/Work" class="nav-item @(currentAction == "Work" ? "active" : "")">
                 <i class="fa-solid fa-car-side"></i> Робота
             </a>
-            <a href="#" class="nav-item"><i class="fa-solid fa-wallet"></i> Гаманець</a>
+            <a href="/Driver/Dashboard/Wallet" class="nav-item @(currentAction == "Wallet" ? "active" : "")">
+                <i class="fa-solid fa-wallet"></i> Гаманець
+            </a>
             
         </nav>
         <a href="/Auth/Logout" class="logout-btn"><i class="fa-solid fa-arrow-right-from-bracket"></i> Вийти з акаунту</a>
@@ -43,11 +45,12 @@
             <div></div>
             <div class="status-toggle">
                 <span id="status-text">@(ViewBag.IsWorkingMode == true ? "Працюю" : "Перерва")</span>
-                <label class="switch">
-                    <input type="checkbox" id="workingModeToggle" @(ViewBag.IsWorkingMode == true ? "checked" : "") onchange="toggleStatus(this)">
+                <label class="switch" for="workingModeToggle">
+                    <input type="checkbox" id="workingModeToggle" @(ViewBag.IsWorkingMode == true ? "checked" : null) onchange="toggleStatus(this)">
                     <span class="slider"></span>
                 </label>
             </div>
+
             <div class="top-stats">
                 <div class="balance-badge"><i class="fa-solid fa-wallet text-muted"></i> @(ViewBag.WalletBalance ?? "0") ₴</div>
                 <div class="rating-badge"><i class="fa-solid fa-star text-warning"></i> @(ViewBag.Rating ?? "5.0")</div>
