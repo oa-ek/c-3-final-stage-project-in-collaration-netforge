@@ -10,7 +10,7 @@
             <div class="avatar-wrapper">
                 <img id="avatarPreview" src="@(string.IsNullOrEmpty(Model.AvatarPath) ? "/img/default-avatar.png" : Model.AvatarPath)" alt="Avatar" />
                 <div class="avatar-btn" id="avatarUploadBtn"><i class="fa-solid fa-camera"></i></div>
-                <input type="file" asp-for="AvatarUpload" id="avatarInput" accept="image/*" style="display: none;" />
+                <input type="file" name="AvatarUpload" id="avatarInput" accept="image/*" style="display: none;" />
             </div>
             <div>
                 <div class="driver-name">@Model.FirstName @Model.LastName</div>
@@ -41,43 +41,43 @@
                     <div class="col-md-6">
                         <div class="form-group">
                             <label>Ім'я</label>
-                            <input asp-for="FirstName" class="form-control-custom" />
+                            <input type="text" name="FirstName" class="form-control-custom" value="@Model.FirstName" />
                         </div>
                     </div>
                     <div class="col-md-6">
                         <div class="form-group">
                             <label>Прізвище</label>
-                            <input asp-for="LastName" class="form-control-custom" />
+                            <input type="text" name="LastName" class="form-control-custom" value="@Model.LastName" />
                         </div>
                     </div>
                     <div class="col-md-6">
                         <div class="form-group">
                             <label>По батькові</label>
-                            <input asp-for="Patronymic" class="form-control-custom" />
+                            <input type="text" name="Patronymic" class="form-control-custom" value="@Model.Patronymic" />
                         </div>
                     </div>
                     <div class="col-md-6">
                         <div class="form-group">
                             <label>Email</label>
-                            <input asp-for="Email" type="email" class="form-control-custom" />
+                            <input type="email" name="Email" class="form-control-custom" value="@Model.Email" />
                         </div>
                     </div>
                     <div class="col-md-6">
                         <div class="form-group">
                             <label>Номер телефону</label>
-                            <input asp-for="PhoneNumber" class="form-control-custom" />
+                            <input type="text" name="PhoneNumber" class="form-control-custom" value="@Model.PhoneNumber" />
                         </div>
                     </div>
                     <div class="col-md-6">
                         <div class="form-group">
                             <label>Дата народження</label>
-                            <input asp-for="DateOfBirth" type="date" class="form-control-custom" />
+                            <input type="date" name="DateOfBirth" class="form-control-custom" value="@(Model.DateOfBirth?.ToString("yyyy-MM-dd"))" />
                         </div>
                     </div>
                     <div class="col-md-12">
                         <div class="form-group">
                             <label>РНОКПП (ІПН)</label>
-                            <input asp-for="TaxId" class="form-control-custom" />
+                            <input type="text" name="TaxId" class="form-control-custom" value="@Model.TaxId" />
                         </div>
                     </div>
                 </div>
@@ -88,43 +88,43 @@
                     <div class="col-md-6">
                         <div class="form-group">
                             <label>Марка</label>
-                            <input asp-for="CarBrand" class="form-control-custom" />
+                            <input type="text" name="CarBrand" class="form-control-custom" value="@Model.CarBrand" />
                         </div>
                     </div>
                     <div class="col-md-6">
                         <div class="form-group">
                             <label>Модель</label>
-                            <input asp-for="CarModel" class="form-control-custom" />
+                            <input type="text" name="CarModel" class="form-control-custom" value="@Model.CarModel" />
                         </div>
                     </div>
                     <div class="col-md-4">
                         <div class="form-group">
                             <label>Рік</label>
-                            <input asp-for="CarYear" class="form-control-custom" />
+                            <input type="number" name="CarYear" class="form-control-custom" value="@Model.CarYear" />
                         </div>
                     </div>
                     <div class="col-md-4">
                         <div class="form-group">
                             <label>Колір</label>
-                            <input asp-for="CarColor" class="form-control-custom" />
+                            <input type="text" name="CarColor" class="form-control-custom" value="@Model.CarColor" />
                         </div>
                     </div>
                     <div class="col-md-4">
                         <div class="form-group">
                             <label>Держ. номер</label>
-                            <input asp-for="LicensePlate" class="form-control-custom" />
+                            <input type="text" name="LicensePlate" class="form-control-custom" value="@Model.LicensePlate" />
                         </div>
                     </div>
                     <div class="col-md-6">
                         <div class="form-group">
                             <label>Кількість місць</label>
-                            <input asp-for="PassengerSeats" type="number" class="form-control-custom" />
+                            <input type="number" name="PassengerSeats" class="form-control-custom" value="@Model.PassengerSeats" />
                         </div>
                     </div>
                     <div class="col-md-6">
                         <div class="form-group">
                             <label>Термін дії страховки</label>
-                            <input asp-for="InsuranceExpiryDate" type="date" class="form-control-custom" />
+                            <input type="date" name="InsuranceExpiryDate" class="form-control-custom" value="@(Model.InsuranceExpiryDate?.ToString("yyyy-MM-dd"))" />
                         </div>
                     </div>
                     <div class="col-md-12 mt-3">
@@ -148,7 +148,7 @@
                     </div>
                     <div class="col-md-12 mt-4">
                         <label class="mb-3 d-block" style="color: var(--text-muted); font-size: 13px;">Завантажити нові фото авто</label>
-                        <input type="file" asp-for="CarPhotosUpload" multiple class="form-control-custom" accept="image/*" />
+                        <input type="file" name="CarPhotosUpload" multiple class="form-control-custom" accept="image/*" />
 
                         @if (Model.ExistingCarPhotos.Any())
                         {
@@ -171,13 +171,13 @@
                     <div class="col-md-12">
                         <div class="form-group">
                             <label>IBAN</label>
-                            <input asp-for="Iban" class="form-control-custom" placeholder="UA00 0000 0000 0000 0000 0000" />
+                            <input type="text" name="Iban" class="form-control-custom" placeholder="UA00 0000 0000 0000 0000 0000" value="@Model.Iban" />
                         </div>
                     </div>
                     <div class="col-md-6">
                         <div class="form-group">
                             <label>Статус ФОП</label>
-                            <input type="hidden" asp-for="IsFopActive" id="IsFopActiveHidden" />
+                            <input type="hidden" name="IsFopActive" id="IsFopActiveHidden" value="@(Model.IsFopActive.ToString().ToLower())" />
                             <div class="fop-toggle">
                                 <button type="button" class="fop-btn @(Model.IsFopActive ? "active-yes" : "")" onclick="setFop(true)">Активний</button>
                                 <button type="button" class="fop-btn @(!Model.IsFopActive ? "active-no" : "")" onclick="setFop(false)">Неактивний</button>

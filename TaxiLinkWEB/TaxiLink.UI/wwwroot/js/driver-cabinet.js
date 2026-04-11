@@ -84,16 +84,28 @@ function toggleStatus(checkbox) {
 
     fetch('/Driver/Dashboard/ToggleWorkingMode', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: 'status=' + isChecked
-    }).then(res => res.json()).then(data => {
-        if (!data.success) {
+        headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+        },
+        body: JSON.stringify({ status: isChecked })
+    })
+        .then(res => {
+            if (!res.ok) throw new Error(`Server error: ${res.status}`);
+            return res.json();
+        })
+        .then(data => {
+            if (!data.success) {
+                checkbox.checked = !isChecked;
+                statusText.innerText = checkbox.checked ? "Працюю" : "Перерва";
+            }
+        })
+        .catch(error => {
+            console.error(error);
             checkbox.checked = !isChecked;
             statusText.innerText = checkbox.checked ? "Працюю" : "Перерва";
-        }
-    });
+        });
 }
-
 function toggleService(btn, id) {
     btn.classList.toggle('selected');
     const icon = btn.querySelector('i');
@@ -129,4 +141,70 @@ function setFop(isActive) {
     const btns = document.querySelectorAll('.fop-btn');
     btns[0].className = 'fop-btn ' + (isActive ? 'active-yes' : '');
     btns[1].className = 'fop-btn ' + (!isActive ? 'active-no' : '');
+}
+function checkWithdrawal(balance) {
+    if (balance <= 0) {
+        alert("На вашому рахунку недостатньо коштів для виведення. Мінімальна сума: 1.00 ₴");
+    } else {
+        alert("Запит на виведення " + balance.toFixed(2) + " ₴ відправлено в обробку. Очікуйте зарахування протягом 24 годин.");
+    }
+}
+
+function processRefill() {
+    const amountInput = document.getElementById('refillAmount');
+    const amount = parseFloat(amountInput.value);
+
+    if (!amount || amount <= 0) {
+        alert("Будь ласка, введіть суму для поповнення.");
+        return;
+    }
+    const btn = document.getElementById('confirmRefillBtn');
+    btn.disabled = true;
+    btn.innerText = "Обробка...";
+
+    fetch('/Driver/Dashboard/RefillWallet', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'amount=' + amount
+    })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                document.getElementById('current-balance-display').innerText = data.newBalance + " ₴";
+                const modalEl = document.getElementById('refillModal');
+                const modal = bootstrap.Modal.getInstance(modalEl);
+                modal.hide();
+
+                alert("Оплата успішна! Баланс поповнено.");
+                location.reload();
+            } else {
+                alert("Помилка поповнення.");
+                btn.disabled = false;
+                btn.innerText = "Підтвердити оплату";
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            btn.disabled = false;
+            btn.innerText = "Підтвердити оплату";
+        });
+}
+function processWithdrawal() {
+    if (!confirm("Ви впевнені, що хочете вивести всі кошти на вашу основну карту?")) {
+        return;
+    }
+
+    fetch('/Driver/Dashboard/WithdrawWallet', {
+        method: 'POST'
+    })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                document.getElementById('current-balance-display').innerText = "0,00 ₴";
+                alert("Кошти успішно виведені! Зарахування очікуйте протягом дня.");
+                location.reload();
+            } else {
+                alert(data.message || "Помилка при виведенні коштів.");
+            }
+        });
 }

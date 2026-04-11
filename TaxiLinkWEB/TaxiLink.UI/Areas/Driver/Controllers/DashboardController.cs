@@ -68,126 +68,221 @@ namespace TaxiLink.UI.Areas.Driver.Controllers
         [HttpGet]
         public async Task<IActionResult> Profile()
         {
-            if (_currentDriver == null) return RedirectToAction("Login", "Auth", new { area = "" });
+            var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
+            if (userIdClaim == null) return RedirectToAction("Login", "Auth", new { area = "" });
+            int userId = int.Parse(userIdClaim.Value);
 
-            var details = await _driverRepo.GetDriverWithDetailsAsync(_currentDriver.Id);
-            if (details == null || details.User == null) return RedirectToAction("Login", "Auth", new { area = "" });
+            var currentUser = await _userRepo.GetByIdAsync(userId);
 
-            SetLayoutData(details);
-            var vehicle = details.Vehicles?.FirstOrDefault();
+            var allDrivers = await _driverRepo.GetAllAsync();
+            var driver = allDrivers.FirstOrDefault(d => d.UserId == userId);
 
             var model = new DriverProfileViewModel
             {
-                FirstName = details.User.FirstName,
-                LastName = details.User.LastName,
-                Patronymic = details.Patronymic,
-                Email = details.User.Email,
-                PhoneNumber = details.User.PhoneNumber,
-                DateOfBirth = details.DateOfBirth,
-                TaxId = details.TaxId,
-                AvatarPath = details.User.AvatarPath,
-                IsVerified = details.IsVerified,
-                Rating = details.User.Rating,
-                AcceptanceRate = details.AcceptanceRate,
-                WalletBalance = details.WalletBalance,
-                Iban = details.Iban,
-                IsFopActive = details.IsFopActive,
-                VehicleId = vehicle?.Id,
-                CarBrand = vehicle?.Brand,
-                CarModel = vehicle?.Model,
-                LicensePlate = vehicle?.LicensePlate,
-                CarYear = vehicle?.Year,
-                CarColor = vehicle?.Color,
-                PassengerSeats = vehicle?.PassengerSeats,
-                InsuranceExpiryDate = vehicle?.InsuranceExpiryDate,
-                AvailableServices = (await _serviceRepo.GetAllAsync()).ToList(),
-                SelectedServiceIds = vehicle != null ? (await _vServiceRepo.GetAllAsync()).Where(x => x.VehicleId == vehicle.Id).Select(x => x.AdditionalServiceId).ToList() : new List<int>(),
-                AvailableVehicleClasses = (await _vClassRepo.GetAllAsync()).ToList(),
-                SelectedVehicleClassIds = vehicle != null ? (await _vVehicleClassRepo.GetAllAsync()).Where(x => x.VehicleId == vehicle.Id).Select(x => x.VehicleClassId).ToList() : new List<int>(),
-                ExistingCarPhotos = vehicle != null ? (await _vPhotoRepo.GetAllAsync()).Where(x => x.VehicleId == vehicle.Id).Select(x => x.PhotoPath).ToList() : new List<string>()
+                FirstName = currentUser?.FirstName,
+                LastName = currentUser?.LastName,
+                Email = currentUser?.Email,
+                PhoneNumber = currentUser?.PhoneNumber,
+                AvatarPath = currentUser?.AvatarPath,
+                Rating = currentUser?.Rating ?? 5.0m,
+
+                Patronymic = driver?.Patronymic,
+                DateOfBirth = driver?.DateOfBirth,
+                TaxId = driver?.TaxId,
+                Iban = driver?.Iban,
+                IsFopActive = driver?.IsFopActive ?? false,
+                IsVerified = driver?.IsVerified ?? false,
+                AcceptanceRate = driver?.AcceptanceRate ?? 100,
+                WalletBalance = driver?.WalletBalance ?? 0
             };
+
+            if (driver != null)
+            {
+                var allVehicles = await _vehicleRepo.GetAllAsync();
+                var vehicle = allVehicles.FirstOrDefault(v => v.DriverId == driver.Id);
+
+                if (vehicle != null)
+                {
+                    model.VehicleId = vehicle.Id;
+                    model.CarBrand = vehicle.Brand;
+                    model.CarModel = vehicle.Model;
+                    model.LicensePlate = vehicle.LicensePlate;
+                    model.CarYear = vehicle.Year;
+                    model.CarColor = vehicle.Color;
+                    model.PassengerSeats = vehicle.PassengerSeats;
+                    model.InsuranceExpiryDate = vehicle.InsuranceExpiryDate;
+
+                    var allVServices = await _vServiceRepo.GetAllAsync();
+                    model.SelectedServiceIds = allVServices.Where(x => x.VehicleId == vehicle.Id).Select(x => x.AdditionalServiceId).ToList();
+
+                    var allVClasses = await _vVehicleClassRepo.GetAllAsync();
+                    model.SelectedVehicleClassIds = allVClasses.Where(x => x.VehicleId == vehicle.Id).Select(x => x.VehicleClassId).ToList();
+
+                    var allPhotos = await _vPhotoRepo.GetAllAsync();
+                    model.ExistingCarPhotos = allPhotos.Where(x => x.VehicleId == vehicle.Id).Select(x => x.PhotoPath).ToList();
+                }
+            }
+
+            model.AvailableServices = (await _serviceRepo.GetAllAsync()).ToList();
+            model.AvailableVehicleClasses = (await _vClassRepo.GetAllAsync()).ToList();
+
+            SetLayoutData(driver ?? new TaxiLink.Domain.Models.Driver { User = currentUser });
             return View(model);
         }
 
         [HttpPost]
-        [HttpPost]
         public async Task<IActionResult> Profile(DriverProfileViewModel model)
         {
-            if (_currentDriver == null) return RedirectToAction("Login", "Auth", new { area = "" });
+            var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
+            if (userIdClaim == null) return RedirectToAction("Login", "Auth", new { area = "" });
+            int userId = int.Parse(userIdClaim.Value);
 
-            var driver = await _driverRepo.GetDriverWithDetailsAsync(_currentDriver.Id);
-            if (driver == null || driver.User == null) return NotFound();
+            var user = await _userRepo.GetByIdAsync(userId);
+            if (user == null) return NotFound();
+
+            user.FirstName = !string.IsNullOrWhiteSpace(model.FirstName) ? model.FirstName : user.FirstName;
+            user.LastName = !string.IsNullOrWhiteSpace(model.LastName) ? model.LastName : user.LastName;
+            user.PhoneNumber = !string.IsNullOrWhiteSpace(model.PhoneNumber) ? model.PhoneNumber : user.PhoneNumber;
+            user.Email = !string.IsNullOrWhiteSpace(model.Email) ? model.Email : user.Email;
+
             if (model.AvatarUpload != null && model.AvatarUpload.Length > 0)
             {
                 string folder = Path.Combine(_webHostEnvironment.WebRootPath, "img", "avatars");
                 if (!Directory.Exists(folder)) Directory.CreateDirectory(folder);
-                string fileName = Guid.NewGuid().ToString() + "_" + Path.GetFileName(model.AvatarUpload.FileName);
+                string fileName = Guid.NewGuid().ToString() + Path.GetExtension(model.AvatarUpload.FileName);
                 using (var fs = new FileStream(Path.Combine(folder, fileName), FileMode.Create))
                 {
                     await model.AvatarUpload.CopyToAsync(fs);
                 }
-                driver.User.AvatarPath = "/img/avatars/" + fileName;
+                user.AvatarPath = "/img/avatars/" + fileName;
             }
-            if (!string.IsNullOrWhiteSpace(model.FirstName)) driver.User.FirstName = model.FirstName;
-            if (!string.IsNullOrWhiteSpace(model.LastName)) driver.User.LastName = model.LastName;
-            if (!string.IsNullOrWhiteSpace(model.PhoneNumber)) driver.User.PhoneNumber = model.PhoneNumber;
-            if (!string.IsNullOrWhiteSpace(model.Email)) driver.User.Email = model.Email;
 
-            driver.Patronymic = model.Patronymic;
-            driver.DateOfBirth = model.DateOfBirth;
-            driver.TaxId = model.TaxId;
-            driver.Iban = model.Iban;
+            _userRepo.Update(user);
+            await _userRepo.SaveChangesAsync();
+
+            var allDrivers = await _driverRepo.GetAllAsync();
+            var driver = allDrivers.FirstOrDefault(d => d.UserId == userId);
+            bool isNewDriver = false;
+
+            if (driver == null)
+            {
+                driver = new TaxiLink.Domain.Models.Driver { UserId = userId, AcceptanceRate = 100, WalletBalance = 0 };
+                isNewDriver = true;
+            }
+
+            driver.Patronymic = !string.IsNullOrWhiteSpace(model.Patronymic) ? model.Patronymic : driver.Patronymic;
+            driver.DateOfBirth = model.DateOfBirth ?? driver.DateOfBirth;
+            driver.TaxId = !string.IsNullOrWhiteSpace(model.TaxId) ? model.TaxId : driver.TaxId;
+            driver.Iban = !string.IsNullOrWhiteSpace(model.Iban) ? model.Iban : driver.Iban;
             driver.IsFopActive = model.IsFopActive;
 
-            _userRepo.Update(driver.User);
-
-            var v = driver.Vehicles.FirstOrDefault();
-            if (v == null)
+            if (isNewDriver)
             {
-                v = new Vehicle
-                {
-                    DriverId = driver.Id,
-                    Brand = model.CarBrand ?? "Не вказано",
-                    Model = model.CarModel ?? "Не вказано",
-                    Year = model.CarYear ?? 2024,
-                    Color = model.CarColor ?? "",
-                    LicensePlate = model.LicensePlate ?? "",
-                    PassengerSeats = model.PassengerSeats ?? 4
-                };
-                await _vehicleRepo.AddAsync(v);
+                await _driverRepo.AddAsync(driver);
+                await _driverRepo.SaveChangesAsync();
             }
             else
             {
-                if (!string.IsNullOrWhiteSpace(model.CarBrand)) v.Brand = model.CarBrand;
-                if (!string.IsNullOrWhiteSpace(model.CarModel)) v.Model = model.CarModel;
-                v.Year = model.CarYear ?? v.Year;
-                v.Color = model.CarColor;
-                v.LicensePlate = model.LicensePlate;
-                v.PassengerSeats = model.PassengerSeats ?? v.PassengerSeats;
-                v.InsuranceExpiryDate = model.InsuranceExpiryDate;
-                _vehicleRepo.Update(v);
-            }
-
-            try
-            {
+                _driverRepo.Update(driver);
                 await _driverRepo.SaveChangesAsync();
             }
-            catch (Exception ex)
+
+            var allVehicles = await _vehicleRepo.GetAllAsync();
+            var vehicle = allVehicles.FirstOrDefault(v => v.DriverId == driver.Id);
+            bool isNewVehicle = false;
+
+            if (vehicle == null)
             {
-                System.Diagnostics.Debug.WriteLine("ПОМИЛКА ЗБЕРЕЖЕННЯ: " + ex.Message);
+                vehicle = new TaxiLink.Domain.Models.Vehicle { DriverId = driver.Id };
+                isNewVehicle = true;
             }
 
+            vehicle.Brand = !string.IsNullOrWhiteSpace(model.CarBrand) ? model.CarBrand : (vehicle.Brand ?? "Не вказано");
+            vehicle.Model = !string.IsNullOrWhiteSpace(model.CarModel) ? model.CarModel : (vehicle.Model ?? "Не вказано");
+            vehicle.Year = model.CarYear ?? (vehicle.Year == 0 ? DateTime.Now.Year : vehicle.Year);
+            vehicle.Color = !string.IsNullOrWhiteSpace(model.CarColor) ? model.CarColor : (vehicle.Color ?? "Не вказано");
+            vehicle.LicensePlate = !string.IsNullOrWhiteSpace(model.LicensePlate) ? model.LicensePlate : (vehicle.LicensePlate ?? "Не вказано");
+            vehicle.PassengerSeats = model.PassengerSeats ?? (vehicle.PassengerSeats == 0 ? 4 : vehicle.PassengerSeats);
+            vehicle.InsuranceExpiryDate = model.InsuranceExpiryDate ?? vehicle.InsuranceExpiryDate;
+
+            if (isNewVehicle)
+            {
+                await _vehicleRepo.AddAsync(vehicle);
+                await _vehicleRepo.SaveChangesAsync();
+            }
+            else
+            {
+                _vehicleRepo.Update(vehicle);
+                await _vehicleRepo.SaveChangesAsync();
+            }
+
+            var oldClasses = (await _vVehicleClassRepo.GetAllAsync()).Where(x => x.VehicleId == vehicle.Id).ToList();
+            foreach (var oc in oldClasses) _vVehicleClassRepo.Delete(oc);
+
+            var oldServices = (await _vServiceRepo.GetAllAsync()).Where(x => x.VehicleId == vehicle.Id).ToList();
+            foreach (var os in oldServices) _vServiceRepo.Delete(os);
+
+            await _vVehicleClassRepo.SaveChangesAsync();
+
+            if (model.SelectedVehicleClassIds != null && model.SelectedVehicleClassIds.Any())
+            {
+                foreach (var classId in model.SelectedVehicleClassIds)
+                {
+                    await _vVehicleClassRepo.AddAsync(new TaxiLink.Domain.Models.VehicleVehicleClass { VehicleId = vehicle.Id, VehicleClassId = classId });
+                }
+            }
+
+            if (model.SelectedServiceIds != null && model.SelectedServiceIds.Any())
+            {
+                foreach (var srvId in model.SelectedServiceIds)
+                {
+                    await _vServiceRepo.AddAsync(new TaxiLink.Domain.Models.VehicleAdditionalService { VehicleId = vehicle.Id, AdditionalServiceId = srvId });
+                }
+            }
+
+            if (model.CarPhotosUpload != null && model.CarPhotosUpload.Any())
+            {
+                string carPhotosFolder = Path.Combine(_webHostEnvironment.WebRootPath, "img", "cars");
+                if (!Directory.Exists(carPhotosFolder)) Directory.CreateDirectory(carPhotosFolder);
+
+                foreach (var photoFile in model.CarPhotosUpload)
+                {
+                    if (photoFile.Length > 0)
+                    {
+                        string pFileName = Guid.NewGuid().ToString() + Path.GetExtension(photoFile.FileName);
+                        using (var fs = new FileStream(Path.Combine(carPhotosFolder, pFileName), FileMode.Create))
+                        {
+                            await photoFile.CopyToAsync(fs);
+                        }
+                        var vPhoto = new TaxiLink.Domain.Models.VehiclePhoto
+                        {
+                            VehicleId = vehicle.Id,
+                            PhotoPath = "/img/cars/" + pFileName
+                        };
+                        await _vPhotoRepo.AddAsync(vPhoto);
+                    }
+                }
+            }
+
+            await _vehicleRepo.SaveChangesAsync();
             return RedirectToAction(nameof(Profile));
         }
 
+        public class StatusUpdateModel
+        {
+            public bool Status { get; set; }
+        }
+
         [HttpPost]
-        public async Task<IActionResult> ToggleWorkingMode(bool status)
+        [IgnoreAntiforgeryToken]
+        public async Task<IActionResult> ToggleWorkingMode([FromBody] StatusUpdateModel model)
         {
             if (_currentDriver == null) return Json(new { success = false });
+
             var driver = await _driverRepo.GetByIdAsync(_currentDriver.Id);
             if (driver != null)
             {
-                driver.IsWorkingMode = status;
+                driver.IsWorkingMode = model.Status;
                 _driverRepo.Update(driver);
                 await _driverRepo.SaveChangesAsync();
                 return Json(new { success = true });
@@ -265,6 +360,89 @@ namespace TaxiLink.UI.Areas.Driver.Controllers
                 };
             }
             return View(model);
+        }
+        [HttpGet]
+        public async Task<IActionResult> Wallet()
+        {
+            if (_currentDriver == null) return RedirectToAction("Login", "Auth", new { area = "" });
+
+            var driver = await _driverRepo.GetDriverWithDetailsAsync(_currentDriver.Id);
+            if (driver == null) return NotFound();
+
+            SetLayoutData(driver);
+
+            var allOrders = await _orderRepo.GetAllAsync();
+            var completedOrders = allOrders
+                .Where(o => o.DriverId == driver.Id && o.OrderStatus?.Name == "Завершено")
+                .ToList();
+
+            var model = new WalletViewModel
+            {
+                WalletBalance = driver.WalletBalance
+            };
+
+            foreach (var order in completedOrders)
+            {
+                DateTime opDate = order.CompletedAt ?? order.CreatedAt;
+                string paymentType = order.PaymentMethod?.Name?.ToLower() == "картка" ? "карткою" : "готівкою";
+
+                model.Transactions.Add(new TransactionItemViewModel
+                {
+                    Title = $"Оплата {paymentType} (Замовлення #{order.Id})",
+                    Date = opDate,
+                    Amount = order.TotalPrice,
+                    IsIncome = true
+                });
+
+                decimal commissionAmount = order.TotalPrice * (driver.CommissionRate / 100m);
+                if (commissionAmount > 0)
+                {
+                    model.Transactions.Add(new TransactionItemViewModel
+                    {
+                        Title = $"Комісія сервісу ({driver.CommissionRate:0}%)",
+                        Date = opDate,
+                        Amount = commissionAmount,
+                        IsIncome = false
+                    });
+                }
+            }
+            model.Transactions = model.Transactions.OrderByDescending(t => t.Date).ToList();
+
+            return View(model);
+        }
+        [HttpPost]
+        [HttpPost]
+        public async Task<IActionResult> RefillWallet(decimal amount)
+        {
+            if (_currentDriver == null || amount <= 0)
+                return Json(new { success = false, message = "Некоректна сума" });
+            var driver = await _driverRepo.GetByIdAsync(_currentDriver.Id);
+            if (driver != null)
+            {
+                driver.WalletBalance += amount;
+                _driverRepo.Update(driver);
+                await _driverRepo.SaveChangesAsync();
+                return Json(new { success = true, newBalance = driver.WalletBalance.ToString("N2") });
+            }
+            return Json(new { success = false });
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> WithdrawWallet()
+        {
+            if (_currentDriver == null) return Json(new { success = false });
+
+            var driver = await _driverRepo.GetByIdAsync(_currentDriver.Id);
+            if (driver != null)
+            {
+                if (driver.WalletBalance <= 0)
+                    return Json(new { success = false, message = "Немає коштів для виведення" });
+                driver.WalletBalance = 0;
+                _driverRepo.Update(driver);
+                await _driverRepo.SaveChangesAsync();
+                return Json(new { success = true, newBalance = "0,00" });
+            }
+            return Json(new { success = false });
         }
     }
 }
