@@ -1,4 +1,6 @@
-﻿document.addEventListener("DOMContentLoaded", function () {
+﻿let selectedRating = 5;
+
+document.addEventListener("DOMContentLoaded", function () {
     const avatarBtn = document.getElementById('avatarUploadBtn');
     const avatarInput = document.getElementById('avatarInput');
     const avatarPreview = document.getElementById('avatarPreview');
@@ -9,7 +11,6 @@
             e.preventDefault();
             avatarInput.click();
         };
-
         avatarInput.onchange = function () {
             if (this.files && this.files[0]) {
                 const reader = new FileReader();
@@ -21,6 +22,15 @@
         };
     }
 
+    const stars = document.querySelectorAll('#rating-stars i');
+    stars.forEach(star => {
+        star.onclick = function () {
+            selectedRating = this.dataset.val;
+            stars.forEach((s, idx) => {
+                s.className = idx < selectedRating ? 'fa-solid fa-star' : 'fa-regular fa-star';
+            });
+        };
+    });
     const mapElement = document.getElementById('map');
     if (mapElement) {
         setTimeout(() => {
@@ -38,11 +48,11 @@
             }).addTo(map);
 
             if (isWorkPage) {
-                var startIcon = L.divIcon({ className: '', html: '<div style="width: 25px; height: 25px; background: rgba(16, 185, 129, 0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center;"><div style="width: 10px; height: 10px; background: #10b981; border-radius: 50%;"></div></div>', iconSize: [25, 25] });
-                var endIcon = L.divIcon({ className: '', html: '<div style="width: 25px; height: 25px; background: rgba(239, 68, 68, 0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center;"><div style="width: 10px; height: 10px; background: #ef4444; border-radius: 50%;"></div></div>', iconSize: [25, 25] });
-                L.marker([50.455, 30.520], { icon: startIcon }).addTo(map);
-                L.marker([50.440, 30.530], { icon: endIcon }).addTo(map);
-            } else if (!isUnverified) {
+                const p = document.getElementById('pickup-addr').innerText.replace(/"/g, '').trim();
+                const d = document.getElementById('dropoff-addr').innerText.replace(/"/g, '').trim();
+                setupRouteOnMap(map, p, d);
+            }
+            else if (!isUnverified) {
                 var carIcon = L.divIcon({
                     className: 'custom-car-marker',
                     html: '<div style="width: 20px; height: 20px; background: #FFCC00; border-radius: 50%; border: 3px solid #1e293b; box-shadow: 0 0 15px rgba(255, 204, 0, 0.8);"></div>',
@@ -56,13 +66,79 @@
     }
 });
 
+async function setupRouteOnMap(map, pickup, dropoff) {
+    const geocode = async (addr) => {
+        try {
+            let res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(addr + ", Київ")}`);
+            let data = await res.json();
+            return data.length > 0 ? L.latLng(data[0].lat, data[0].lon) : null;
+        } catch (e) { return null; }
+    };
+
+    const pCoords = await geocode(pickup);
+    const dCoords = await geocode(dropoff);
+
+    if (pCoords && dCoords) {
+        L.Routing.control({
+            waypoints: [pCoords, dCoords],
+            lineOptions: { styles: [{ color: '#facc15', weight: 6, opacity: 0.8 }] },
+            show: false,
+            addWaypoints: false,
+            createMarker: () => null 
+        }).on('routesfound', function (e) {
+            const summary = e.routes[0].summary;
+            const timeInMinutes = Math.round((summary.totalDistance / 1000) * 3 + 2); 
+
+            const timeEl = document.getElementById('arrival-time');
+            if (timeEl) timeEl.innerText = `~ ${timeInMinutes} хв`;
+
+            map.flyTo(pCoords, 15, { animate: true, duration: 1.5 });
+        }).addTo(map);
+
+        L.marker(pCoords, { icon: L.divIcon({ className: '', html: '<div style="background:#10b981; width:16px; height:16px; border-radius:50%; border:2px solid white;"></div>' }) }).addTo(map);
+        L.marker(dCoords, { icon: L.divIcon({ className: '', html: '<div style="background:#ef4444; width:16px; height:16px; border-radius:50%; border:2px solid white;"></div>' }) }).addTo(map);
+    }
+}
+function acceptOrder(id) {
+    fetch('/Driver/Dashboard/AcceptOrder?orderId=' + id, { method: 'POST' })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                window.location.href = '/Driver/Dashboard/Work';
+            } else {
+                alert(data.message);
+            }
+        });
+}
+
+function updateRideStatus(action, id) {
+    fetch(`/Driver/Dashboard/${action}?orderId=${id}`, { method: 'POST' })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                if (action === 'CompleteRide') {
+                    window.location.href = '/Driver/Dashboard/Wallet';
+                } else {
+                    location.reload();
+                }
+            }
+        });
+}
+
+function submitCancel(id) {
+    const reason = document.getElementById('cancelReasonId').value;
+    fetch(`/Driver/Dashboard/CancelOrder?orderId=${id}&reasonId=${reason}`, { method: 'POST' })
+        .then(() => window.location.href = '/Driver/Dashboard/Index');
+}
+
+function submitFinish(id) {
+    fetch(`/Driver/Dashboard/FinishOrder?orderId=${id}&rating=${selectedRating}`, { method: 'POST' })
+        .then(() => window.location.href = '/Driver/Dashboard/Wallet');
+}
 function switchTab(tabId) {
     const navLinks = document.querySelectorAll('.nav-tabs-custom .nav-link');
     navLinks.forEach(link => link.classList.remove('active'));
-
-    if (event && event.currentTarget) {
-        event.currentTarget.classList.add('active');
-    }
+    if (event && event.currentTarget) event.currentTarget.classList.add('active');
 
     const panes = document.querySelectorAll('.tab-pane');
     panes.forEach(pane => {
@@ -84,28 +160,19 @@ function toggleStatus(checkbox) {
 
     fetch('/Driver/Dashboard/ToggleWorkingMode', {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-        },
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
         body: JSON.stringify({ status: isChecked })
-    })
-        .then(res => {
-            if (!res.ok) throw new Error(`Server error: ${res.status}`);
-            return res.json();
-        })
-        .then(data => {
-            if (!data.success) {
-                checkbox.checked = !isChecked;
-                statusText.innerText = checkbox.checked ? "Працюю" : "Перерва";
-            }
-        })
-        .catch(error => {
-            console.error(error);
+    }).then(res => res.json()).then(data => {
+        if (!data.success) {
             checkbox.checked = !isChecked;
             statusText.innerText = checkbox.checked ? "Працюю" : "Перерва";
-        });
+        }
+    }).catch(() => {
+        checkbox.checked = !isChecked;
+        statusText.innerText = checkbox.checked ? "Працюю" : "Перерва";
+    });
 }
+
 function toggleService(btn, id) {
     btn.classList.toggle('selected');
     const icon = btn.querySelector('i');
@@ -142,69 +209,48 @@ function setFop(isActive) {
     btns[0].className = 'fop-btn ' + (isActive ? 'active-yes' : '');
     btns[1].className = 'fop-btn ' + (!isActive ? 'active-no' : '');
 }
+
 function checkWithdrawal(balance) {
-    if (balance <= 0) {
-        alert("На вашому рахунку недостатньо коштів для виведення. Мінімальна сума: 1.00 ₴");
-    } else {
-        alert("Запит на виведення " + balance.toFixed(2) + " ₴ відправлено в обробку. Очікуйте зарахування протягом 24 годин.");
-    }
+    if (balance <= 0) alert("На вашому рахунку недостатньо коштів для виведення. Мінімальна сума: 1.00 ₴");
+    else alert("Запит на виведення " + balance.toFixed(2) + " ₴ відправлено в обробку. Очікуйте зарахування протягом 24 годин.");
 }
 
 function processRefill() {
     const amountInput = document.getElementById('refillAmount');
     const amount = parseFloat(amountInput.value);
+    if (!amount || amount <= 0) { alert("Будь ласка, введіть суму для поповнення."); return; }
 
-    if (!amount || amount <= 0) {
-        alert("Будь ласка, введіть суму для поповнення.");
-        return;
-    }
     const btn = document.getElementById('confirmRefillBtn');
-    btn.disabled = true;
-    btn.innerText = "Обробка...";
+    btn.disabled = true; btn.innerText = "Обробка...";
 
     fetch('/Driver/Dashboard/RefillWallet', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: 'amount=' + amount
-    })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                document.getElementById('current-balance-display').innerText = data.newBalance + " ₴";
-                const modalEl = document.getElementById('refillModal');
-                const modal = bootstrap.Modal.getInstance(modalEl);
-                modal.hide();
-
-                alert("Оплата успішна! Баланс поповнено.");
-                location.reload();
-            } else {
-                alert("Помилка поповнення.");
-                btn.disabled = false;
-                btn.innerText = "Підтвердити оплату";
-            }
-        })
-        .catch(err => {
-            console.error(err);
-            btn.disabled = false;
-            btn.innerText = "Підтвердити оплату";
-        });
+    }).then(res => res.json()).then(data => {
+        if (data.success) {
+            document.getElementById('current-balance-display').innerText = data.newBalance + " ₴";
+            bootstrap.Modal.getInstance(document.getElementById('refillModal')).hide();
+            alert("Оплата успішна! Баланс поповнено.");
+            location.reload();
+        } else {
+            alert("Помилка поповнення.");
+            btn.disabled = false; btn.innerText = "Підтвердити оплату";
+        }
+    }).catch(() => {
+        btn.disabled = false; btn.innerText = "Підтвердити оплату";
+    });
 }
-function processWithdrawal() {
-    if (!confirm("Ви впевнені, що хочете вивести всі кошти на вашу основну карту?")) {
-        return;
-    }
 
-    fetch('/Driver/Dashboard/WithdrawWallet', {
-        method: 'POST'
-    })
-        .then(response => response.json())
+function processWithdrawal() {
+    if (!confirm("Ви впевнені, що хочете вивести всі кошти на вашу основну карту?")) return;
+    fetch('/Driver/Dashboard/WithdrawWallet', { method: 'POST' })
+        .then(res => res.json())
         .then(data => {
             if (data.success) {
                 document.getElementById('current-balance-display').innerText = "0,00 ₴";
                 alert("Кошти успішно виведені! Зарахування очікуйте протягом дня.");
                 location.reload();
-            } else {
-                alert(data.message || "Помилка при виведенні коштів.");
-            }
+            } else alert(data.message || "Помилка при виведенні коштів.");
         });
 }

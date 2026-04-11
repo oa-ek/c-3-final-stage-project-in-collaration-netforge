@@ -22,19 +22,26 @@ namespace TaxiLink.UI.Areas.Driver.Controllers
         private readonly IGenericRepository<VehiclePhoto> _vPhotoRepo;
         private readonly IWebHostEnvironment _webHostEnvironment;
         private readonly IOrderRepository _orderRepo;
-
+        private readonly IGenericRepository<OrderStatus> _statusRepo;
+        private readonly IGenericRepository<CancellationReason> _cancelReasonRepo;
+        private readonly IGenericRepository<OrderAdditionalService> _orderSrvRepo;
+        private readonly IGenericRepository<NewsItem> _newsRepo;
         public DashboardController(
             IDriverService driverService,
-            IDriverRepository driverRepo,
-            IUserRepository userRepo,
-            IVehicleRepository vehicleRepo,
-            IGenericRepository<AdditionalService> serviceRepo,
-            IGenericRepository<VehicleAdditionalService> vServiceRepo,
-            IGenericRepository<VehicleClass> vClassRepo,
-            IGenericRepository<VehicleVehicleClass> vVehicleClassRepo,
-            IGenericRepository<VehiclePhoto> vPhotoRepo,
-            IWebHostEnvironment webHostEnvironment,
-            IOrderRepository orderRepo) : base(driverService)
+     IDriverRepository driverRepo,
+     IUserRepository userRepo,
+     IVehicleRepository vehicleRepo,
+     IGenericRepository<AdditionalService> serviceRepo,
+     IGenericRepository<VehicleAdditionalService> vServiceRepo,
+     IGenericRepository<VehicleClass> vClassRepo,
+     IGenericRepository<VehicleVehicleClass> vVehicleClassRepo,
+     IGenericRepository<VehiclePhoto> vPhotoRepo,
+     IWebHostEnvironment webHostEnvironment,
+     IOrderRepository orderRepo,
+     IGenericRepository<OrderStatus> statusRepo,
+     IGenericRepository<CancellationReason> cancelReasonRepo,
+     IGenericRepository<OrderAdditionalService> orderSrvRepo,
+     IGenericRepository<NewsItem> newsRepo) : base(driverService)
         {
             _driverRepo = driverRepo;
             _userRepo = userRepo;
@@ -46,6 +53,10 @@ namespace TaxiLink.UI.Areas.Driver.Controllers
             _vPhotoRepo = vPhotoRepo;
             _webHostEnvironment = webHostEnvironment;
             _orderRepo = orderRepo;
+            _statusRepo = statusRepo;
+            _cancelReasonRepo = cancelReasonRepo;
+            _orderSrvRepo = orderSrvRepo;
+            _newsRepo = newsRepo;
         }
 
         private void SetLayoutData(TaxiLink.Domain.Models.Driver d)
@@ -54,6 +65,7 @@ namespace TaxiLink.UI.Areas.Driver.Controllers
             ViewBag.WalletBalance = d.WalletBalance;
             ViewBag.Rating = d.User?.Rating ?? 5.0m;
             ViewBag.IsVerified = d.IsVerified;
+            ViewBag.AvatarPath = d.User?.AvatarPath;
         }
 
         [HttpGet]
@@ -290,6 +302,7 @@ namespace TaxiLink.UI.Areas.Driver.Controllers
             return Json(new { success = false });
         }
 
+    
         [HttpGet]
         public async Task<IActionResult> Orders()
         {
@@ -298,23 +311,43 @@ namespace TaxiLink.UI.Areas.Driver.Controllers
             SetLayoutData(details);
 
             var allOrders = await _orderRepo.GetAllAsync();
+            var allOrderSrv = await _orderSrvRepo.GetAllAsync();
+            var allServices = await _serviceRepo.GetAllAsync();
+            var allUsers = await _userRepo.GetAllAsync();
+
             var driverOrders = allOrders
                 .Where(o => o.DriverId == null || o.DriverId == _currentDriver.Id)
                 .OrderByDescending(o => o.CreatedAt)
-                .Select(o => new DriverOrderViewModel
-                {
-                    Id = o.Id,
-                    PickupAddress = o.PickupAddress,
-                    DropoffAddress = o.DropoffAddress,
-                    Distance = o.Distance,
-                    TotalPrice = o.TotalPrice,
-                    ScheduledTime = o.ScheduledTime,
-                    CreatedAt = o.CreatedAt,
-                    StatusName = o.OrderStatus?.Name ?? "Невідомо",
-                    PaymentMethodName = o.PaymentMethod?.Name ?? "Невідомо",
-                    VehicleClassName = o.VehicleClass?.Name ?? "Стандарт",
-                    PassengerName = o.PassengerName ?? o.User?.FirstName ?? "Клієнт",
-                    PassengerRating = o.User?.Rating ?? 5.0m
+                .Select(o => {
+                    var passenger = allUsers.FirstOrDefault(u => u.Id == o.UserId);
+                    string pName = o.PassengerName;
+                    if (string.IsNullOrEmpty(pName))
+                    {
+                        pName = (passenger?.Id == _currentDriver.UserId) ? "Олена (Тестовий клієнт)" : passenger?.FirstName;
+                    }
+
+                    var srvIds = o.OrderAdditionalServices?.Select(x => x.AdditionalServiceId).ToList();
+                    if (srvIds == null || !srvIds.Any())
+                    {
+                        srvIds = allOrderSrv.Where(x => x.OrderId == o.Id).Select(x => x.AdditionalServiceId).ToList();
+                    }
+                    var srvNames = allServices.Where(x => srvIds.Contains(x.Id)).Select(x => x.Name).ToList();
+
+                    return new DriverOrderViewModel
+                    {
+                        Id = o.Id,
+                        PickupAddress = o.PickupAddress,
+                        DropoffAddress = o.DropoffAddress,
+                        Distance = o.Distance,
+                        TotalPrice = o.TotalPrice,
+                        ScheduledTime = o.ScheduledTime,
+                        CreatedAt = o.CreatedAt,
+                        StatusName = o.OrderStatus?.Name ?? "Очікується",
+                        PaymentMethodName = o.PaymentMethod?.Name ?? "Готівка",
+                        VehicleClassName = o.VehicleClass?.Name ?? "Стандарт",
+                        PassengerName = pName ?? "Клієнт",
+                        SelectedServices = srvNames
+                    };
                 }).ToList();
 
             return View(driverOrders);
@@ -326,40 +359,57 @@ namespace TaxiLink.UI.Areas.Driver.Controllers
             if (_currentDriver == null) return RedirectToAction("Login", "Auth", new { area = "" });
             var details = await _driverRepo.GetDriverWithDetailsAsync(_currentDriver.Id);
             SetLayoutData(details);
+            ViewBag.CancelReasons = await _cancelReasonRepo.GetAllAsync();
 
             var allOrders = await _orderRepo.GetAllAsync();
             var activeOrder = allOrders.FirstOrDefault(o => o.DriverId == _currentDriver.Id && o.OrderStatus?.Name != "Завершено" && o.OrderStatus?.Name != "Скасовано");
 
-            DriverOrderViewModel model;
             if (activeOrder != null)
             {
-                model = new DriverOrderViewModel
+                var allOrderSrv = await _orderSrvRepo.GetAllAsync();
+                var allServices = await _serviceRepo.GetAllAsync();
+                var allUsers = await _userRepo.GetAllAsync();
+
+                var passenger = allUsers.FirstOrDefault(u => u.Id == activeOrder.UserId);
+                string pName = activeOrder.PassengerName;
+                if (string.IsNullOrEmpty(pName))
+                {
+                    pName = (passenger?.Id == _currentDriver.UserId) ? "Олена (Тестовий клієнт)" : passenger?.FirstName;
+                }
+
+                var srvIds = activeOrder.OrderAdditionalServices?.Select(x => x.AdditionalServiceId).ToList();
+                if (srvIds == null || !srvIds.Any())
+                {
+                    srvIds = allOrderSrv.Where(x => x.OrderId == activeOrder.Id).Select(x => x.AdditionalServiceId).ToList();
+                }
+                var srvNames = allServices.Where(x => srvIds.Contains(x.Id)).Select(x => x.Name).ToList();
+
+                var model = new DriverOrderViewModel
                 {
                     Id = activeOrder.Id,
                     PickupAddress = activeOrder.PickupAddress,
                     DropoffAddress = activeOrder.DropoffAddress,
-                    PassengerName = activeOrder.PassengerName ?? activeOrder.User?.FirstName ?? "Клієнт",
+                    PassengerName = pName ?? "Клієнт",
                     ClientComment = activeOrder.ClientComment,
                     Distance = activeOrder.Distance,
                     TotalPrice = activeOrder.TotalPrice,
-                    StatusName = activeOrder.OrderStatus?.Name ?? "В дорозі до клієнта"
+                    StatusName = activeOrder.OrderStatus?.Name ?? "В дорозі",
+                    SelectedServices = srvNames
                 };
+                return View(model);
             }
-            else
-            {
-                model = new DriverOrderViewModel
-                {
-                    Id = 0,
-                    PickupAddress = "вул. Хрещатик, 22",
-                    DropoffAddress = "вул. Саксаганського, 45",
-                    PassengerName = "Олена Коваленко",
-                    ClientComment = "\"Буду з собакою\"",
-                    Distance = 5.2m,
-                    TotalPrice = 250,
-                    StatusName = "В дорозі до клієнта"
-                };
-            }
-            return View(model);
+            return View(new DriverOrderViewModel { Id = 0 });
+        }
+        [HttpGet]
+        public async Task<IActionResult> News()
+        {
+            if (_currentDriver == null) return RedirectToAction("Login", "Auth", new { area = "" });
+
+            var details = await _driverRepo.GetDriverWithDetailsAsync(_currentDriver.Id);
+            SetLayoutData(details);
+            var allNews = await _newsRepo.GetAllAsync();
+            var sortedNews = allNews.OrderByDescending(n => n.PublishedAt).ToList();
+            return View(sortedNews);
         }
         [HttpGet]
         public async Task<IActionResult> Wallet()
@@ -411,7 +461,6 @@ namespace TaxiLink.UI.Areas.Driver.Controllers
             return View(model);
         }
         [HttpPost]
-        [HttpPost]
         public async Task<IActionResult> RefillWallet(decimal amount)
         {
             if (_currentDriver == null || amount <= 0)
@@ -443,6 +492,141 @@ namespace TaxiLink.UI.Areas.Driver.Controllers
                 return Json(new { success = true, newBalance = "0,00" });
             }
             return Json(new { success = false });
+        }
+        [HttpPost]
+        public async Task<IActionResult> AcceptOrder(int orderId)
+        {
+            if (_currentDriver == null) return Json(new { success = false });
+
+            var order = await _orderRepo.GetByIdAsync(orderId);
+            if (order != null && order.DriverId == null)
+            {
+                order.DriverId = _currentDriver.Id;
+                var acceptedStatus = (await _statusRepo.GetAllAsync()).FirstOrDefault(s => s.Name == "В дорозі до клієнта");
+                order.OrderStatusId = acceptedStatus?.Id ?? 2;
+
+                _orderRepo.Update(order);
+                await _orderRepo.SaveChangesAsync();
+                return Json(new { success = true });
+            }
+            return Json(new { success = false, message = "Замовлення вже зайняте" });
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> StartRide(int orderId)
+        {
+            var order = await _orderRepo.GetByIdAsync(orderId);
+            if (order != null && order.DriverId == _currentDriver.Id)
+            {
+                var activeStatus = (await _statusRepo.GetAllAsync()).FirstOrDefault(s => s.Name == "Виконується");
+                order.OrderStatusId = activeStatus?.Id ?? 3;
+
+                _orderRepo.Update(order);
+                await _orderRepo.SaveChangesAsync();
+                return Json(new { success = true });
+            }
+            return Json(new { success = false });
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> CompleteRide(int orderId)
+        {
+            var order = await _orderRepo.GetByIdAsync(orderId);
+            var driver = await _driverRepo.GetByIdAsync(_currentDriver.Id);
+
+            if (order != null && driver != null)
+            {
+                var completedStatus = (await _statusRepo.GetAllAsync()).FirstOrDefault(s => s.Name == "Завершено");
+                order.OrderStatusId = completedStatus?.Id ?? 4;
+                order.CompletedAt = DateTime.Now;
+
+                decimal commission = order.TotalPrice * (driver.CommissionRate / 100m);
+                if (order.PaymentMethodId == 1) { driver.WalletBalance -= commission; }
+                else { driver.WalletBalance += (order.TotalPrice - commission); }
+
+                _orderRepo.Update(order);
+                _driverRepo.Update(driver);
+                await _orderRepo.SaveChangesAsync();
+                return Json(new { success = true });
+            }
+            return Json(new { success = false });
+        }
+        [HttpPost]
+        public async Task<IActionResult> CancelOrder(int orderId, int reasonId)
+        {
+            var order = await _orderRepo.GetByIdAsync(orderId);
+            var driver = await _driverRepo.GetByIdAsync(_currentDriver.Id);
+            decimal penalty = 20.00m;
+
+            if (order != null && driver != null)
+            {
+                var cancelStatus = (await _statusRepo.GetAllAsync()).FirstOrDefault(s => s.Name == "Скасовано");
+                order.OrderStatusId = cancelStatus?.Id ?? 5;
+                order.CancellationReasonId = reasonId;
+
+                driver.WalletBalance -= penalty;
+
+                _orderRepo.Update(order);
+                _driverRepo.Update(driver);
+                await _orderRepo.SaveChangesAsync();
+                return Json(new { success = true, message = "Замовлення скасовано" });
+            }
+            return Json(new { success = false });
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> FinishOrder(int orderId, int rating)
+        {
+            var order = await _orderRepo.GetByIdAsync(orderId);
+            var passenger = await _userRepo.GetByIdAsync(order.UserId);
+
+            if (order != null && passenger != null)
+            {
+                passenger.Rating = (passenger.Rating + rating) / 2;
+                _userRepo.Update(passenger);
+                return await CompleteRide(orderId);
+            }
+            return Json(new { success = false });
+        }
+    
+        [HttpPost]
+        public async Task<IActionResult> CreateOrder(string pickup, string dropoff, decimal distance, int vehicleClassId, string comment, List<int> selectedServices, decimal finalPrice)
+        {
+            var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
+
+            var order = new Order
+            {
+                UserId = userId,
+                PickupAddress = pickup,
+                DropoffAddress = dropoff,
+                Distance = distance,
+                VehicleClassId = vehicleClassId,
+                ClientComment = comment,
+                TotalPrice = finalPrice,
+                OrderStatusId = 1,
+                PaymentMethodId = 1,
+                CityId = 1,
+                CreatedAt = DateTime.Now
+            };
+
+            await _orderRepo.AddAsync(order);
+            await _orderRepo.SaveChangesAsync();
+
+            if (selectedServices != null && selectedServices.Any())
+            {
+                foreach (var srvId in selectedServices)
+                {
+                    var orderSrv = new OrderAdditionalService
+                    {
+                        OrderId = order.Id,
+                        AdditionalServiceId = srvId
+                    };
+                    await _orderSrvRepo.AddAsync(orderSrv);
+                }
+                await _orderSrvRepo.SaveChangesAsync();
+            }
+
+            return RedirectToAction("Orders", "Dashboard", new { area = "Driver" });
         }
     }
 }

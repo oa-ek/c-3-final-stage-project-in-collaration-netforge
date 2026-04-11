@@ -1,0 +1,85 @@
+﻿@using TaxiLink.Domain.Models
+@{
+    ViewData["Title"] = "Деталі замовлення";
+    Layout = "_Layout";
+    var basePriceFromController = (decimal)ViewBag.TotalPrice;
+}
+
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card border-0 shadow-sm p-4" style="border-radius: 20px;">
+                <h3 class="fw-bold mb-4">Ваше замовлення</h3>
+
+                <div class="p-3 bg-light rounded-3 mb-4 border-start border-warning border-4">
+                    <div><i class="fa-solid fa-circle-dot text-success me-2"></i> @ViewBag.Pickup</div>
+                    <div><i class="fa-solid fa-location-dot text-danger me-2"></i> @ViewBag.Dropoff</div>
+                    <div class="mt-2 text-muted small">Відстань: @ViewBag.Distance км</div>
+                </div>
+
+                <form asp-action="CreateOrder" method="post" id="orderForm">
+                    <input type="hidden" name="pickup" value="@ViewBag.Pickup" />
+                    <input type="hidden" name="dropoff" value="@ViewBag.Dropoff" />
+                    <input type="hidden" name="distance" value="@ViewBag.Distance" />
+                    <input type="hidden" name="vehicleClassId" value="@ViewBag.VehicleClassId" />
+                    <input type="hidden" name="finalPrice" id="finalPriceInput" value="@basePriceFromController.ToString().Replace(",", ".")" />
+
+                    <div class="mb-4">
+                        <label class="fw-bold mb-3">Додаткові опції:</label>
+                        <div class="row g-3">
+                            @foreach (var service in (IEnumerable<AdditionalService>)ViewBag.Services)
+                            {
+                                <div class="col-6">
+                                    <div class="form-check p-3 border rounded-3 service-card">
+                                        <input class="form-check-input service-checkbox" type="checkbox"
+                                               name="selectedServices" value="@service.Id" id="srv_@service.Id"
+                                               data-price="@service.Price.ToString().Replace(",", ".")">
+                                        <label class="form-check-label w-100" for="srv_@service.Id" style="cursor: pointer;">
+                                            @service.Name (+@service.Price ₴)
+                                        </label>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="fw-bold mb-2">Коментар водію</label>
+                        <textarea name="comment" class="form-control border-0 bg-light py-3" rows="2" placeholder="Наприклад: під'їзд №2, зачекайте за рогом" style="border-radius: 12px;"></textarea>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center mt-5 p-4 bg-dark text-white rounded-4 shadow">
+                        <div>
+                            <div class="small opacity-75">До оплати</div>
+                            <h2 class="m-0 text-warning"><span id="totalDisplay">@basePriceFromController.ToString("F2")</span> ₴</h2>
+                        </div>
+                        <button type="submit" class="btn btn-warning btn-lg px-5 py-3 fw-bold rounded-3">Замовити таксі</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        const basePrice = parseFloat("@basePriceFromController.ToString().Replace(",", ".")");
+        const checkboxes = document.querySelectorAll('.service-checkbox');
+        const totalDisplay = document.getElementById('totalDisplay');
+        const finalPriceInput = document.getElementById('finalPriceInput');
+
+        checkboxes.forEach(cb => {
+            cb.addEventListener('change', () => {
+                let extra = 0;
+                checkboxes.forEach(c => {
+                    if (c.checked) {
+                        extra += parseFloat(c.getAttribute('data-price'));
+                    }
+                });
+                let total = basePrice + extra;
+                totalDisplay.innerText = total.toFixed(2);
+                finalPriceInput.value = total.toFixed(2).replace('.', ',');
+            });
+        });
+    </script>
+}

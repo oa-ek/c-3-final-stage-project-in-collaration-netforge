@@ -1,0 +1,45 @@
+﻿@model IEnumerable<TaxiLink.Domain.Models.NewsItem>
+@{
+    ViewData["Title"] = "Новини сервісу";
+    Layout = "~/Areas/Driver/Views/Shared/_DriverLayout.cshtml";
+}
+
+<div class="dashboard-wrapper">
+    <div class="glass-card p-4 h-100 d-flex flex-column" style="overflow-y: auto;">
+        <h3 class="fw-bold mb-4 text-white">Новини та оновлення</h3>
+
+        @if (!Model.Any())
+        {
+            <div class="d-flex flex-column align-items-center justify-content-center flex-grow-1 text-white-50" style="opacity: 0.6;">
+                <i class="fa-regular fa-newspaper display-1 mb-3"></i>
+                <h5 class="fw-bold">Поки що немає нових повідомлень</h5>
+                <p class="small">Тут будуть відображатися важливі оновлення сервісу TaxiLink, бонуси та правила.</p>
+            </div>
+        }
+        else
+        {
+            <div class="news-list d-flex flex-column gap-3">
+                @foreach (var item in Model)
+                {
+                    <div class="news-item p-4 rounded-3 position-relative overflow-hidden" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); transition: 0.3s;">
+                        <div style="position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--accent-yellow);"></div>
+
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <h5 class="fw-bold text-white mb-0" style="font-size: 18px;">@item.Title</h5>
+                            <span class="badge bg-dark text-white-50 border border-secondary p-2">@item.PublishedAt.ToString("dd.MM.yyyy")</span>
+                        </div>
+
+                        @if (!string.IsNullOrEmpty(item.ImagePath))
+                        {
+                            <img src="@item.ImagePath" alt="News Image" class="img-fluid rounded mb-3" style="max-height: 250px; object-fit: cover; width: 100%; border: 1px solid rgba(255,255,255,0.1);" />
+                        }
+
+                        <p class="text-white-50 mb-0" style="font-size: 14px; line-height: 1.6;">
+                            @item.Description
+                        </p>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+</div>
