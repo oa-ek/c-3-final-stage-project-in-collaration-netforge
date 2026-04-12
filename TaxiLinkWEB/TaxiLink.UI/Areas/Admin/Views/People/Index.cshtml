@@ -57,6 +57,7 @@
                                             <td class="text-end">
                                                 <button onclick="openClientModal(@u.Id, true)" class="btn btn-link btn-sm text-info"><i class="fas fa-eye"></i></button>
                                                 <button onclick="openClientModal(@u.Id, false)" class="btn btn-link btn-sm text-success"><i class="fas fa-pencil-alt"></i></button>
+                                                <button onclick="deleteClient(@u.Id)" class="btn btn-link btn-sm text-danger"><i class="fas fa-trash"></i></button>
                                             </td>
                                         </tr>
                                     }
@@ -100,6 +101,7 @@
                                                 }
                                                 <button onclick="openDriverModal(@d.Id, true)" class="btn btn-link btn-sm text-info"><i class="fas fa-eye"></i></button>
                                                 <button onclick="openDriverModal(@d.Id, false)" class="btn btn-link btn-sm text-warning"><i class="fas fa-pencil-alt"></i></button>
+                                                <button onclick="deleteDriver(@d.Id)" class="btn btn-link btn-sm text-danger"><i class="fas fa-trash"></i></button>
                                             </td>
                                         </tr>
                                     }
@@ -202,7 +204,7 @@
                         </div>
                         <div class="col-md-6">
                             <label>Рейтинг</label>
-                            <input name="Rating" id="u_Rating" type="number" step="0.1" class="form-control mb-2" />
+                            <input name="Rating" id="u_Rating" type="text" class="form-control mb-2" />
                             <div class="form-check mt-3">
                                 <input class="form-check-input" type="checkbox" name="PrefersSilentRide" id="u_PrefersSilentRide" value="true">
                                 <label class="form-check-label">Любить тишу</label>
@@ -274,74 +276,3 @@
         </div>
     </div>
 </div>
-
-<!-- <script>
-    function openClientModal(id, viewOnly) {
-        $('#clientForm')[0].reset();
-        $('#u_Id').val(id);
-        $('#clientSaveBtn').show();
-        $('#clientForm input').prop('disabled', false);
-
-        if (id === 0) {
-            $('#clientModalTitle').text('Новий клієнт');
-            $('#u_Rating').val("5,0");
-        } else {
-            $.get('/People/GetUser/' + id, function(data) {
-                $('#u_FirstName').val(data.firstName);
-                $('#u_LastName').val(data.lastName);
-                $('#u_PhoneNumber').val(data.phoneNumber);
-                $('#u_Email').val(data.email);
-                $('#u_AvatarPath').val(data.avatarPath);
-                $('#u_Rating').val(data.rating ? data.rating.toString().replace('.', ',') : "5,0");
-                $('#u_PrefersSilentRide').prop('checked', data.prefersSilentRide);
-
-                if (viewOnly) {
-                    $('#clientModalTitle').text('Перегляд клієнта');
-                    $('#clientSaveBtn').hide();
-                    $('#clientForm input').prop('disabled', true);
-                } else {
-                    $('#clientModalTitle').text('Редагування клієнта');
-                }
-            });
-        }
-        $('#clientModal').modal('show');
-    }
-
-    function openDriverModal(id, viewOnly) {
-        $('#driverForm')[0].reset();
-        $('#d_DriverId').val(id);
-        $('#d_UserId').val(0);
-        $('#driverSaveBtn').show();
-        $('#driverForm input').prop('disabled', false);
-
-        if (id === 0) {
-            $('#driverModalTitle').text('Найняти водія');
-            $('#d_CommissionRate').val("10,0");
-        } else {
-            $.get('/People/GetDriverDetails/' + id, function(data) {
-                $('#d_DriverId').val(data.driverId);
-                $('#d_UserId').val(data.userId);
-                $('#d_AvatarPath').val(data.avatarPath);
-                $('#d_FirstName').val(data.firstName);
-                $('#d_LastName').val(data.lastName);
-                $('#d_PhoneNumber').val(data.phoneNumber);
-                $('#d_Email').val(data.email);
-                $('#d_Patronymic').val(data.patronymic);
-                $('#d_TaxId').val(data.taxId);
-                $('#d_Iban').val(data.iban);
-                if(data.dateOfBirth) $('#d_DateOfBirth').val(data.dateOfBirth.split('T')[0]);
-                $('#d_CommissionRate').val(data.commissionRate ? data.commissionRate.toString().replace('.', ',') : "10,0");
-                $('#d_IsVerified').prop('checked', data.isVerified);
-
-                if (viewOnly) {
-                    $('#driverModalTitle').text('Перегляд водія');
-                    $('#driverSaveBtn').hide();
-                    $('#driverForm input').prop('disabled', true);
-                } else {
-                    $('#driverModalTitle').text('Редагування водія');
-                }
-            });
-        }
-        $('#driverModal').modal('show');
-    }
-</script> -->

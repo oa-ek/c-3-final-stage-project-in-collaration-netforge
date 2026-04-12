@@ -38,10 +38,9 @@ namespace TaxiLink.UI.Admin_areas.Controllers
         {
             var allUsers = await _userRepo.GetAllAsync();
             var allDrivers = await _driverRepo.GetAllAsync();
-            var roles = await _roleRepo.GetAllAsync();
 
-            int clientRoleId = roles.FirstOrDefault(r => r.Name.ToLower().Contains("client") || r.Name.ToLower().Contains("user"))?.Id ?? 3;
-            var clients = allUsers.Where(u => u.RoleId == clientRoleId).ToList();
+            var driverUserIds = allDrivers.Select(d => d.UserId).ToList();
+            var clients = allUsers.Where(u => !driverUserIds.Contains(u.Id)).ToList();
 
             foreach (var d in allDrivers)
             {
@@ -74,7 +73,7 @@ namespace TaxiLink.UI.Admin_areas.Controllers
         public async Task<IActionResult> UpsertUser(User user, IFormFile? AvatarFile)
         {
             var roles = await _roleRepo.GetAllAsync();
-            int clientRoleId = roles.FirstOrDefault(r => r.Name.ToLower().Contains("client") || r.Name.ToLower().Contains("user"))?.Id ?? 3;
+            int clientRoleId = roles.FirstOrDefault(r => r.Name.ToLower().Contains("client") || r.Name.ToLower().Contains("клієнт"))?.Id ?? 2;
 
             user.AvatarPath = await ProcessAvatarAsync(AvatarFile, user.AvatarPath);
 
@@ -137,7 +136,7 @@ namespace TaxiLink.UI.Admin_areas.Controllers
         public async Task<IActionResult> UpsertDriver(AdminViewModels.DriverUpsertDto dto, IFormFile? AvatarFile)
         {
             var roles = await _roleRepo.GetAllAsync();
-            int driverRoleId = roles.FirstOrDefault(r => r.Name.ToLower().Contains("driver"))?.Id ?? 2;
+            int driverRoleId = roles.FirstOrDefault(r => r.Name.ToLower().Contains("driver") || r.Name.ToLower().Contains("водій"))?.Id ?? 3;
             string? newAvatarPath = await ProcessAvatarAsync(AvatarFile, dto.AvatarPath);
 
             if (dto.DriverId == 0)
@@ -153,7 +152,7 @@ namespace TaxiLink.UI.Admin_areas.Controllers
                     AvatarPath = newAvatarPath
                 };
                 await _userRepo.AddAsync(newUser);
-                await _userRepo.SaveChangesAsync();
+                await _userRepo.SaveChangesAsync(); 
 
                 var newDriver = new Driver
                 {

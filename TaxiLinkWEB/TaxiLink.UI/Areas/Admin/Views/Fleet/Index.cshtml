@@ -135,45 +135,4 @@
         </div>
     </div>
 </div>
-<!--<script>
-    function openVehicleModal(id, viewOnly) {
-        $('#vehicleForm')[0].reset();
-        $('#v_Id').val(id);
-        $('.v-class-check').prop('checked', false);
-        $('.v-srv-check').prop('checked', false);
-        $('#vehicleSaveBtn').show();
-        $('#vehicleForm input, #vehicleForm select').prop('disabled', false);
 
-        if (id === 0) {
-            $('#vehicleModalTitle').text('Додати новий автомобіль');
-        } else {
-            $.get('/Fleet/GetVehicleDetails/' + id, function(data) {
-                $('#v_DriverId').val(data.driverId);
-                $('#v_Brand').val(data.brand);
-                $('#v_Model').val(data.model);
-                $('#v_Year').val(data.year);
-                $('#v_Color').val(data.color);
-                $('#v_LicensePlate').val(data.licensePlate);
-                $('#v_PassengerSeats').val(data.passengerSeats);
-                if(data.insuranceExpiryDate) $('#v_InsuranceExpiryDate').val(data.insuranceExpiryDate.split('T')[0]);
-                $('#v_ExistingPhotoPath').val(data.existingPhotoPath);
-
-                if (data.selectedClassIds) {
-                    data.selectedClassIds.forEach(cid => $('#cls_' + cid).prop('checked', true));
-                }
-                if (data.selectedServiceIds) {
-                    data.selectedServiceIds.forEach(sid => $('#vsrv_' + sid).prop('checked', true));
-                }
-
-                if (viewOnly) {
-                    $('#vehicleModalTitle').text('Перегляд автомобіля');
-                    $('#vehicleSaveBtn').hide();
-                    $('#vehicleForm input, #vehicleForm select').prop('disabled', true);
-                } else {
-                    $('#vehicleModalTitle').text('Редагування автомобіля');
-                }
-            });
-        }
-        $('#vehicleModal').modal('show');
-    }
-</script> -->

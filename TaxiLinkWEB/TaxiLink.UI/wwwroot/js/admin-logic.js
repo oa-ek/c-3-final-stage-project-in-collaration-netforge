@@ -565,3 +565,26 @@ function openCancellationReasonModal(id, viewOnly) {
         });
     }
 }
+function deleteClient(id) {
+    if (confirm('Ви дійсно хочете видалити цього клієнта? Всі його дані можуть бути втрачені!')) {
+        $.post('/Admin/People/DeleteUser', { id: id }, function () {
+            location.reload();
+        }).fail(function () {
+            $.post('/People/DeleteUser', { id: id }, function () {
+                location.reload();
+            });
+        });
+    }
+}
+
+function deleteDriver(id) {
+    if (confirm('Ви дійсно хочете видалити цього водія з системи?')) {
+        $.post('/Admin/People/DeleteDriver', { id: id }, function () {
+            location.reload();
+        }).fail(function () {
+            $.post('/People/DeleteDriver', { id: id }, function () {
+                location.reload();
+            });
+        });
+    }
+}
