@@ -125,6 +125,9 @@ namespace TaxiLink.UI.Controllers
         public IActionResult GoogleLogin()
         {
             var properties = new AuthenticationProperties { RedirectUri = Url.Action("ExternalLoginCallback") };
+
+            properties.Items["prompt"] = "select_account";
+
             return Challenge(properties, GoogleDefaults.AuthenticationScheme);
         }
 
@@ -134,7 +137,6 @@ namespace TaxiLink.UI.Controllers
             var properties = new AuthenticationProperties { RedirectUri = Url.Action("ExternalLoginCallback") };
             return Challenge(properties, FacebookDefaults.AuthenticationScheme);
         }
-
         [HttpGet]
         public async Task<IActionResult> ExternalLoginCallback()
         {
@@ -143,7 +145,8 @@ namespace TaxiLink.UI.Controllers
 
             var email = result.Principal.FindFirstValue(ClaimTypes.Email);
             var users = await _userService.GetAllUsersAsync();
-            var user = users.FirstOrDefault(u => u.Email == email);
+
+            var user = users.FirstOrDefault(u => u.Email != null && u.Email.Equals(email, StringComparison.OrdinalIgnoreCase));
 
             if (user == null)
             {
@@ -154,7 +157,7 @@ namespace TaxiLink.UI.Controllers
                     Email = email,
                     PhoneNumber = "0000000000",
                     PasswordHash = BCrypt.Net.BCrypt.HashPassword(Guid.NewGuid().ToString()),
-                    RoleId = 3,
+                    RoleId = 3, // Клієнт
                     RegistrationDate = DateTime.Now
                 };
                 await _userService.CreateUserAsync(user);
@@ -230,7 +233,7 @@ namespace TaxiLink.UI.Controllers
             }
             return View(model);
         }
-
+        [HttpGet]
         private async Task Authenticate(User user, bool isPersistent)
         {
             var claims = new List<Claim>
@@ -238,8 +241,7 @@ namespace TaxiLink.UI.Controllers
                 new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
                 new Claim(ClaimTypes.Name, user.FirstName),
                 new Claim(ClaimTypes.Email, user.Email),
-                new Claim(ClaimTypes.Role, user.RoleId == 1 ? "Admin" : (user.RoleId == 2 ? "Driver" : "Passenger"))
-            };
+                new Claim(ClaimTypes.Role, user.RoleId == 1 ? "Admin" : (user.RoleId == 2 ? "Driver" : "Client"))            };
 
             var id = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
             var props = new AuthenticationProperties
@@ -250,12 +252,12 @@ namespace TaxiLink.UI.Controllers
 
             await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(id), props);
         }
-
+        [HttpGet]
         private IActionResult RedirectToRoleDashboard(int roleId)
         {
             if (roleId == 1) return RedirectToAction("Index", "Dashboard", new { area = "Admin" });
             if (roleId == 2) return RedirectToAction("Index", "Dashboard", new { area = "Driver" });
-            return RedirectToAction("Index", "Home");
+            return RedirectToAction("Index", "Dashboard", new { area = "Client" });
         }
 
         private async Task SendEmailAsync(string email, string subject, string message)
@@ -271,7 +273,7 @@ namespace TaxiLink.UI.Controllers
             }
             catch { }
         }
-
+        [HttpGet]
         public async Task<IActionResult> Logout()
         {
             await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
