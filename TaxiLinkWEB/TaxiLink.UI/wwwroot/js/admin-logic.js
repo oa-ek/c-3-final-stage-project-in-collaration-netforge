@@ -53,10 +53,11 @@ function loadCharts() {
     let end = $('#endDate').val();
     $.get(`/Admin/Dashboard/GetDashboardData?startDate=${start}&endDate=${end}`, function(data) {
         $('#valRevenue').text(data.kpi.totalRevenue.toLocaleString());
+        $('#valRevenueUsd').text(data.kpi.totalRevenueUsd.toLocaleString());
+        $('#valRevenueEur').text(data.kpi.totalRevenueEur.toLocaleString());
         $('#valOrders').text(data.kpi.totalOrders);
         $('#valAvg').text(data.kpi.averageCheck.toLocaleString());
         $('#valDrivers').text(data.kpi.activeDrivers);
-
         if (revenueChartInstance) revenueChartInstance.destroy();
         const ctxRev = document.getElementById('revenueChart').getContext('2d');
         revenueChartInstance = new Chart(ctxRev, {
@@ -77,17 +78,45 @@ function loadCharts() {
 
         if (statusChartInstance) statusChartInstance.destroy();
         const ctxStat = document.getElementById('statusChart').getContext('2d');
+        const totalStatusCount = data.statuses.reduce((sum, item) => sum + item.count, 0);
+
         statusChartInstance = new Chart(ctxStat, {
             type: 'doughnut',
             data: {
-                labels: data.statuses.map(x => x.status),
+                labels: data.statuses.map(x => {
+                    const percent = totalStatusCount > 0 ? Math.round((x.count / totalStatusCount) * 100) : 0;
+                    return `${x.status} (${percent}%)`;
+                }),
                 datasets: [{
                     data: data.statuses.map(x => x.count),
-                    backgroundColor: ['#eab308', '#3b82f6', '#10b981', '#ef4444'],
+                    backgroundColor: ['#eab308', '#3b82f6', '#10b981', '#ef4444', '#8b5cf6'], 
                     borderWidth: 0
                 }]
             },
-            options: { responsive: true, plugins: { legend: { labels: { color: '#f8fafc' } } } }
+            options: {
+                responsive: true,
+                maintainAspectRatio: false, 
+                cutout: '70%', 
+                plugins: {
+                    legend: {
+                        position: 'right', 
+                        labels: {
+                            color: '#f8fafc',
+                            boxWidth: 12, 
+                            padding: 15,
+                            font: { size: 12 }
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function (context) {
+                                let value = context.raw || 0;
+                                return ` Кількість: ${value} шт.`;
+                            }
+                        }
+                    }
+                }
+            }
         });
     });
 }

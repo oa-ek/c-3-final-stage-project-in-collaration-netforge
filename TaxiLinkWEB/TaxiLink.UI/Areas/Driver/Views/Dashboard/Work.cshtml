@@ -7,7 +7,7 @@
 <div class="work-wrapper">
     @if (Model.Id == 0)
     {
-        <div class="d-flex flex-column align-items-center justify-content-center h-100 text-center px-4">
+        <div class="d-flex flex-column align-items-center justify-content-center h-100 text-center px-4 w-100" style="background-color: #1e293b;">
             <div style="font-size: 60px; color: rgba(255,255,255,0.05); margin-bottom: 20px;"><i class="fa-solid fa-car-on"></i></div>
             <h3 class="fw-bold">Активних замовлень немає</h3>
             <p class="text-muted small">Перейдіть у вкладку "Замовлення", щоб взяти нове.</p>
@@ -16,74 +16,84 @@
     else
     {
         <div id="map" style="width: 100%; height: 100%;"></div>
-        <div class="top-status-pill">@Model.StatusName</div>
 
-        <div class="active-order-card">
-            <div class="route-block">
-                <div class="route-line"></div>
-                <div class="route-step">
-                    <div class="step-label">Початок маршруту</div>
-                    <div class="step-address" id="pickup-addr"><div class="dot-start"></div>@Model.PickupAddress</div>
-                </div>
-                <div class="route-step">
-                    <div class="step-label">Кінець маршруту</div>
-                    <div class="step-address" id="dropoff-addr"><div class="dot-end"></div>@Model.DropoffAddress</div>
-                </div>
-            </div>
+        <input type="hidden" id="currentOrderId" value="@Model.Id" />
 
-            <div class="services-chips mb-3 d-flex flex-wrap gap-2 p-2 rounded" style="background: rgba(0,0,0,0.2);">
-                <div class="text-muted w-100" style="font-size: 10px; text-transform: uppercase;">Опції замовлення:</div>
-                @if (Model.SelectedServices != null && Model.SelectedServices.Any())
-                {
-                    foreach (var srv in Model.SelectedServices)
+        <div class="driver-info-sidebar">
+            <button id="sidebar-toggle-btn"><i class="fa-solid fa-chevron-left"></i></button>
+
+            <div class="sidebar-content">
+                <div class="top-status-pill mb-4" style="background-color: #facc15; color: #1e293b; padding: 10px; border-radius: 10px; text-align: center; font-weight: bold; font-size: 14px;">@Model.StatusName</div>
+
+                <div class="d-flex flex-column gap-3">
+                    <div class="route-block" style="position: relative;">
+                        <div class="route-line" style="position: absolute; left: 6px; top: 15px; bottom: 15px; width: 2px; background: rgba(255,255,255,0.1);"></div>
+                        <div class="route-step mb-3">
+                            <div class="step-label text-white-50 small mb-1">Початок маршруту</div>
+                            <div class="step-address d-flex align-items-center fw-bold" id="pickup-addr"><div class="dot-start" style="background:#10b981; width:14px; height:14px; border-radius:50%; border:2px solid white; margin-right: 10px;"></div>@Model.PickupAddress</div>
+                        </div>
+                        <div class="route-step">
+                            <div class="step-label text-white-50 small mb-1">Кінець маршруту</div>
+                            <div class="step-address d-flex align-items-center fw-bold" id="dropoff-addr"><div class="dot-end" style="background:#ef4444; width:14px; height:14px; border-radius:50%; border:2px solid white; margin-right: 10px;"></div>@Model.DropoffAddress</div>
+                        </div>
+                    </div>
+
+                    <div class="services-chips d-flex flex-wrap gap-2 p-2 rounded" style="background: rgba(0,0,0,0.2);">
+                        <div class="text-muted w-100" style="font-size: 10px; text-transform: uppercase;">Опції замовлення:</div>
+                        @if (Model.SelectedServices != null && Model.SelectedServices.Any())
+                        {
+                            foreach (var srv in Model.SelectedServices)
+                            {
+                                <span class="badge bg-warning text-dark px-2 py-1 border-0">@srv</span>
+                            }
+                        }
+                        else
+                        {
+                            <span class="text-white-50" style="font-size: 11px;">Додаткових послуг немає</span>
+                        }
+                    </div>
+
+                    <div class="passenger-block d-flex justify-content-between align-items-center p-3 rounded" style="background: rgba(0,0,0,0.2);">
+                        <div>
+                            <div class="passenger-label text-white-50 small">Пасажир</div>
+                            <div class="passenger-name text-warning fw-bold fs-5">@Model.PassengerName</div>
+                        </div>
+                        <div class="action-icons d-flex gap-2">
+                            <a href="tel:000" class="icon-btn text-success fs-3"><i class="fa-solid fa-phone"></i></a>
+                            <button class="icon-btn text-muted fs-3 border-0 bg-transparent"><i class="fa-solid fa-comment-dots"></i></button>
+                        </div>
+                    </div>
+
+                    @if (!string.IsNullOrEmpty(Model.ClientComment))
                     {
-                        <span class="badge bg-warning text-dark px-2 py-1 border-0">@srv</span>
+                        <div class="comment-box p-3 rounded" style="background: rgba(255, 204, 0, 0.1); border: 1px solid rgba(255, 204, 0, 0.3); font-size: 14px; font-style: italic;">"@Model.ClientComment"</div>
                     }
-                }
-                else
-                {
-                    <span class="text-white-50" style="font-size: 11px;">Додаткових послуг немає</span>
-                }
-            </div>
 
-            <div class="passenger-block">
-                <div>
-                    <div class="passenger-label">Пасажир</div>
-                    <div class="passenger-name text-warning">@Model.PassengerName</div>
+                    <div class="stats-row border-top border-white border-opacity-10 pt-3">
+                        <div class="stat-item mb-2">
+                            <div class="label text-white-50 small">Орієнтовний час</div>
+                            <div class="val text-success fw-bold fs-5" id="arrival-time">рахуємо...</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="label text-white-50 small">Вартість</div>
+                            <div class="stat-price">
+                                <span class="fw-bold fs-2 text-white">@Model.TotalPrice ₴</span><br />
+                                <span id="usd-price" style="font-size: 14px; color: #94a3b8; font-weight: 500;"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex flex-column gap-2 mt-auto">
+                        <button id="btn-cancel" class="btn btn-outline-danger w-100 py-3 fw-bold" data-bs-toggle="modal" data-bs-target="#cancelModal">Скасувати</button>
+
+                        @if (Model.StatusName.Contains("до клієнта") || Model.StatusName.Contains("Прийнято") || Model.StatusName.Contains("В дорозі"))
+                        {
+                            <button id="btn-start" class="btn btn-warning w-100 py-3 fw-bold text-dark" data-order-id="@Model.Id">Почати поїздку</button>
+                        }
+
+                        <button id="btn-finish" class="btn btn-success w-100 py-3 fw-bold text-white" style="display: none;" data-bs-toggle="modal" data-bs-target="#finishModal">Завершити</button>
+                    </div>
                 </div>
-                <div class="action-icons">
-                    <a href="tel:000" class="icon-btn icon-call"><i class="fa-solid fa-phone"></i></a>
-                    <button class="icon-btn icon-msg"><i class="fa-solid fa-comment-dots"></i></button>
-                </div>
-            </div>
-
-            @if (!string.IsNullOrEmpty(Model.ClientComment))
-            {
-                <div class="comment-box">"@Model.ClientComment"</div>
-            }
-
-            <div class="stats-row border-top border-white border-opacity-10 pt-3">
-                <div class="stat-item">
-                    <div class="label">Орієнтовний час</div>
-                    <div class="val text-success" id="arrival-time">рахуємо...</div>
-                </div>
-                <div class="stat-item text-end">
-                    <div class="label">Вартість</div>
-                    <div class="stat-price">@Model.TotalPrice ₴</div>
-                </div>
-            </div>
-
-            <div class="d-flex gap-2 mt-4">
-                <button class="btn btn-outline-danger flex-fill py-3 fw-bold" data-bs-toggle="modal" data-bs-target="#cancelModal">Скасувати</button>
-
-                @if (Model.StatusName.Contains("до клієнта") || Model.StatusName.Contains("Прийнято"))
-                {
-                    <button class="btn btn-warning flex-fill py-3 fw-bold text-dark" onclick="updateRideStatus('StartRide', @Model.Id)">Почати поїздку</button>
-                }
-                else
-                {
-                    <button class="btn btn-success flex-fill py-3 fw-bold text-white" data-bs-toggle="modal" data-bs-target="#finishModal">Завершити</button>
-                }
             </div>
         </div>
     }

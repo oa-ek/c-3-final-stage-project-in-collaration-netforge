@@ -26,22 +26,29 @@ namespace TaxiLink.UI.Areas.Driver.Controllers
         private readonly IGenericRepository<CancellationReason> _cancelReasonRepo;
         private readonly IGenericRepository<OrderAdditionalService> _orderSrvRepo;
         private readonly IGenericRepository<NewsItem> _newsRepo;
+        private readonly IGeocodingService _geocodingService;
+        private readonly IRoutingService _routingService;
+        private readonly ICurrencyService _currencyService;
         public DashboardController(
             IDriverService driverService,
-     IDriverRepository driverRepo,
-     IUserRepository userRepo,
-     IVehicleRepository vehicleRepo,
-     IGenericRepository<AdditionalService> serviceRepo,
-     IGenericRepository<VehicleAdditionalService> vServiceRepo,
-     IGenericRepository<VehicleClass> vClassRepo,
-     IGenericRepository<VehicleVehicleClass> vVehicleClassRepo,
-     IGenericRepository<VehiclePhoto> vPhotoRepo,
-     IWebHostEnvironment webHostEnvironment,
-     IOrderRepository orderRepo,
-     IGenericRepository<OrderStatus> statusRepo,
-     IGenericRepository<CancellationReason> cancelReasonRepo,
-     IGenericRepository<OrderAdditionalService> orderSrvRepo,
-     IGenericRepository<NewsItem> newsRepo) : base(driverService)
+            IDriverRepository driverRepo,
+            IUserRepository userRepo,
+            IVehicleRepository vehicleRepo,
+            IGenericRepository<AdditionalService> serviceRepo,
+            IGenericRepository<VehicleAdditionalService> vServiceRepo,
+            IGenericRepository<VehicleClass> vClassRepo,
+            IGenericRepository<VehicleVehicleClass> vVehicleClassRepo,
+            IGenericRepository<VehiclePhoto> vPhotoRepo,
+            IWebHostEnvironment webHostEnvironment,
+            IOrderRepository orderRepo,
+            IGenericRepository<OrderStatus> statusRepo,
+            IGenericRepository<CancellationReason> cancelReasonRepo,
+            IGenericRepository<OrderAdditionalService> orderSrvRepo,
+            IGenericRepository<NewsItem> newsRepo,
+            IGeocodingService geocodingService,     
+            IRoutingService routingService,       
+            ICurrencyService currencyService)         
+            : base(driverService)
         {
             _driverRepo = driverRepo;
             _userRepo = userRepo;
@@ -57,6 +64,10 @@ namespace TaxiLink.UI.Areas.Driver.Controllers
             _cancelReasonRepo = cancelReasonRepo;
             _orderSrvRepo = orderSrvRepo;
             _newsRepo = newsRepo;
+
+            _geocodingService = geocodingService; 
+            _routingService = routingService;    
+            _currencyService = currencyService;   
         }
 
         private void SetLayoutData(TaxiLink.Domain.Models.Driver d)
@@ -401,6 +412,36 @@ namespace TaxiLink.UI.Areas.Driver.Controllers
             return View(new DriverOrderViewModel { Id = 0 });
         }
         [HttpGet]
+        public async Task<IActionResult> GetRouteData(int orderId)
+        {
+            var order = await _orderRepo.GetByIdAsync(orderId);
+            if (order == null) return Json(new { success = false });
+            var startCoords = await _geocodingService.GetCoordinatesAsync(order.PickupAddress + ", Київ");
+            var endCoords = await _geocodingService.GetCoordinatesAsync(order.DropoffAddress + ", Київ");
+            if (startCoords == null) startCoords = ("50.4501", "30.5234");
+            if (endCoords == null) endCoords = ("50.4422", "30.5367");
+            var routeInfo = await _routingService.GetRouteInfoAsync(
+                startCoords.Value.Lat, startCoords.Value.Lon,
+                endCoords.Value.Lat, endCoords.Value.Lon
+            );
+
+            if (routeInfo == null)
+                return Json(new { success = false, message = "Не вдалося побудувати маршрут." });
+            var usdRate = await _currencyService.GetRateAsync("USD");
+            decimal priceUsd = usdRate.HasValue && usdRate.Value > 0
+                ? Math.Round(order.TotalPrice / usdRate.Value, 2)
+                : 0;
+
+            return Json(new
+            {
+                success = true,
+                distance = routeInfo.Value.DistanceKm,
+                duration = routeInfo.Value.DurationMinutes,
+                priceUsd = priceUsd,
+                routeCoordinates = routeInfo.Value.Coordinates
+            });
+        }
+        [HttpGet]
         public async Task<IActionResult> News()
         {
             if (_currentDriver == null) return RedirectToAction("Login", "Auth", new { area = "" });
@@ -519,7 +560,7 @@ namespace TaxiLink.UI.Areas.Driver.Controllers
             if (order != null && order.DriverId == _currentDriver.Id)
             {
                 var activeStatus = (await _statusRepo.GetAllAsync()).FirstOrDefault(s => s.Name == "Виконується");
-                order.OrderStatusId = activeStatus?.Id ?? 3;
+                order.OrderStatusId = activeStatus?.Id ?? order.OrderStatusId;
 
                 _orderRepo.Update(order);
                 await _orderRepo.SaveChangesAsync();

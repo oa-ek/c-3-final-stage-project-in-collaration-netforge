@@ -19,27 +19,41 @@
 </div>
 
 <div class="row g-4 mb-4">
-    <div class="col-md-3">
-        <div class="card border-0 shadow-sm p-4 text-center" style="border-radius: 15px; background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white;">
-            <h6 class="text-uppercase fw-bold opacity-75 mb-2">Дохід за період</h6>
+    <div class="col-xl col-md-6">
+        <div class="card border-0 shadow-sm p-4 text-center" style="border-radius: 15px; background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; height: 100%;">
+            <h6 class="text-uppercase fw-bold opacity-75 mb-2">Дохід (UAH) 🇺🇦</h6>
             <h2 class="fw-bold mb-0"><span id="valRevenue">0</span> ₴</h2>
         </div>
     </div>
-    <div class="col-md-3">
-        <div class="card border-0 shadow-sm p-4 text-center" style="border-radius: 15px; background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); color: white;">
-            <h6 class="text-uppercase fw-bold opacity-75 mb-2">Замовлень</h6>
+
+    <div class="col-xl col-md-6">
+        <div class="card border-0 shadow-sm p-4 text-center" style="border-radius: 15px; background: linear-gradient(135deg, #f6d365 0%, #fda085 100%); color: white; height: 100%;">
+            <h6 class="text-uppercase fw-bold opacity-75 mb-2">У валюті (NBU) 🌍</h6>
+            <h3 class="fw-bold mb-0 mt-1" style="font-size: 1.6rem;">
+                $<span id="valRevenueUsd">0</span>
+                <span style="opacity: 0.5; margin: 0 5px;">|</span>
+                €<span id="valRevenueEur">0</span>
+            </h3>
+        </div>
+    </div>
+
+    <div class="col-xl col-md-6">
+        <div class="card border-0 shadow-sm p-4 text-center" style="border-radius: 15px; background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); color: white; height: 100%;">
+            <h6 class="text-uppercase fw-bold opacity-75 mb-2">Замовлень 🚕</h6>
             <h2 class="fw-bold mb-0" id="valOrders">0</h2>
         </div>
     </div>
-    <div class="col-md-3">
-        <div class="card border-0 shadow-sm p-4 text-center" style="border-radius: 15px; background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); color: white;">
-            <h6 class="text-uppercase fw-bold opacity-75 mb-2">Середній чек</h6>
+
+    <div class="col-xl col-md-6">
+        <div class="card border-0 shadow-sm p-4 text-center" style="border-radius: 15px; background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); color: white; height: 100%;">
+            <h6 class="text-uppercase fw-bold opacity-75 mb-2">Середній чек 💳</h6>
             <h2 class="fw-bold mb-0"><span id="valAvg">0</span> ₴</h2>
         </div>
     </div>
-    <div class="col-md-3">
-        <div class="card border-0 shadow-sm p-4 text-center" style="border-radius: 15px; background: linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%); color: white;">
-            <h6 class="text-uppercase fw-bold opacity-75 mb-2">Активні водії</h6>
+
+    <div class="col-xl col-md-6">
+        <div class="card border-0 shadow-sm p-4 text-center" style="border-radius: 15px; background: linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%); color: white; height: 100%;">
+            <h6 class="text-uppercase fw-bold opacity-75 mb-2">Активні водії 👨‍✈️</h6>
             <h2 class="fw-bold mb-0" id="valDrivers">0</h2>
         </div>
     </div>
@@ -73,7 +87,7 @@
     <div class="col-md-4">
         <div class="card border-0 shadow-sm p-4" style="border-radius: 15px; height: 100%;">
             <h6 class="fw-bold text-muted mb-4">Статуси замовлень</h6>
-            <div style="position: relative; height: 300px; width: 100%;">
+            <div style="position: relative; height: 240px; width: 100%; display: flex; justify-content: center;">
                 <canvas id="statusChart"></canvas>
             </div>
         </div>
