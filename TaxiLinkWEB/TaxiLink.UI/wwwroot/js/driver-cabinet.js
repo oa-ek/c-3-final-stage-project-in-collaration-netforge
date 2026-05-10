@@ -1,4 +1,29 @@
 ﻿let selectedRating = 5;
+let carMarker = null;
+let routePolyline = null;
+let animationInterval = null;
+let routePoints = [];
+
+const carSvg = `
+<svg viewBox="0 0 100 200" width="32" height="64" xmlns="http://www.w3.org/2000/svg" style="filter: drop-shadow(0px 0px 15px rgba(250, 204, 21, 0.7)); transition: transform 0.1s linear;">
+  <rect x="10" y="20" width="80" height="160" rx="25" fill="#FFCC00" />
+  <rect x="25" y="10" width="50" height="180" rx="15" fill="#FFCC00" />
+  <path d="M30 50 Q 50 40 70 50 L 75 100 Q 50 90 25 100 Z" fill="#1e293b" />
+  <rect x="20" y="105" width="10" height="50" rx="5" fill="#1e293b" />
+  <rect x="70" y="105" width="10" height="50" rx="5" fill="#1e293b" />
+  <path d="M30 160 Q 50 170 70 160 L 72 150 Q 50 155 28 150 Z" fill="#1e293b" />
+  <rect x="5" y="70" width="10" height="20" rx="5" fill="#FFCC00" />
+  <rect x="85" y="70" width="10" height="20" rx="5" fill="#FFCC00" />
+  <rect x="35" y="30" width="10" height="10" fill="black" />
+  <rect x="45" y="30" width="10" height="10" fill="white" />
+  <rect x="55" y="30" width="10" height="10" fill="black" />
+  <rect x="35" y="40" width="10" height="10" fill="white" />
+  <rect x="45" y="40" width="10" height="10" fill="black" />
+  <rect x="55" y="40" width="10" height="10" fill="white" />
+  <rect x="25" y="175" width="15" height="10" rx="3" fill="#ef4444" />
+  <rect x="60" y="175" width="15" height="10" rx="3" fill="#ef4444" />
+</svg>
+`;
 
 document.addEventListener("DOMContentLoaded", function () {
     const avatarBtn = document.getElementById('avatarUploadBtn');
@@ -31,84 +56,226 @@ document.addEventListener("DOMContentLoaded", function () {
             });
         };
     });
+
     const mapElement = document.getElementById('map');
     if (mapElement) {
         setTimeout(() => {
             const isUnverified = document.getElementById('unverified-overlay') !== null;
             const isWorkPage = document.querySelector('.work-wrapper') !== null;
 
-            var map = L.map('map', {
+            window.driverMap = L.map('map', {
                 zoomControl: !isUnverified,
                 dragging: !isUnverified,
-                scrollWheelZoom: !isUnverified
+                scrollWheelZoom: !isUnverified,
+                fadeAnimation: false,
             }).setView([50.4501, 30.5234], 13);
 
             L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
                 attribution: '&copy; OpenStreetMap'
-            }).addTo(map);
+            }).addTo(window.driverMap);
 
             if (isWorkPage) {
                 const p = document.getElementById('pickup-addr').innerText.replace(/"/g, '').trim();
                 const d = document.getElementById('dropoff-addr').innerText.replace(/"/g, '').trim();
-                setupRouteOnMap(map, p, d);
+
+                const cancelBtn = document.querySelector('button[data-bs-target="#cancelModal"]');
+                if (cancelBtn) {
+                    const orderIdInput = document.getElementById('currentOrderId');
+                    const extId = orderIdInput ? orderIdInput.value : null;
+                    if (extId) {
+                        setupRouteOnMap(window.driverMap, p, d, extId);
+                    }
+                }
             }
             else if (!isUnverified) {
                 var carIcon = L.divIcon({
-                    className: 'custom-car-marker',
-                    html: '<div style="width: 20px; height: 20px; background: #FFCC00; border-radius: 50%; border: 3px solid #1e293b; box-shadow: 0 0 15px rgba(255, 204, 0, 0.8);"></div>',
-                    iconSize: [20, 20],
-                    iconAnchor: [10, 10]
+                    className: 'custom-car-marker-container-static',
+                    html: carSvg,
+                    iconSize: [26, 52],
+                    iconAnchor: [13, 26]
                 });
-                L.marker([50.4501, 30.5234], { icon: carIcon }).addTo(map);
+                L.marker([50.4501, 30.5234], { icon: carIcon }).addTo(window.driverMap);
             }
-            map.invalidateSize();
+            window.driverMap.invalidateSize();
         }, 300);
+    }
+
+    const sidebarToggleBtn = document.getElementById('sidebar-toggle-btn');
+    if (sidebarToggleBtn) {
+        sidebarToggleBtn.onclick = function () {
+            const sidebar = document.querySelector('.driver-info-sidebar');
+            sidebar.classList.toggle('collapsed');
+
+            const icon = this.querySelector('i');
+            if (sidebar.classList.contains('collapsed')) {
+                icon.classList.remove('fa-chevron-left');
+                icon.classList.add('fa-chevron-right');
+            } else {
+                icon.classList.remove('fa-chevron-right');
+                icon.classList.add('fa-chevron-left');
+            }
+
+            if (window.driverMap) {
+                setTimeout(() => {
+                    window.driverMap.invalidateSize();
+                }, 400);
+            }
+        };
+    }
+
+    const startBtn = document.getElementById('btn-start');
+    if (startBtn) {
+        startBtn.addEventListener('click', function (e) {
+            e.preventDefault();
+            const currentOrderId = this.getAttribute('data-order-id') || document.getElementById('currentOrderId').value;
+            startRideAction(currentOrderId);
+        });
     }
 });
 
-async function setupRouteOnMap(map, pickup, dropoff) {
-    const geocode = async (addr) => {
-        try {
-            let res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(addr + ", Київ")}`);
-            let data = await res.json();
-            return data.length > 0 ? L.latLng(data[0].lat, data[0].lon) : null;
-        } catch (e) { return null; }
-    };
+async function setupRouteOnMap(map, pickup, dropoff, orderId) {
+    try {
+        const response = await fetch(`/Driver/Dashboard/GetRouteData?orderId=${orderId}`);
+        const data = await response.json();
 
-    const pCoords = await geocode(pickup);
-    const dCoords = await geocode(dropoff);
+        if (data.success) {
+            document.getElementById('arrival-time').innerText = `~ ${data.duration} хв`;
+            const usdEl = document.getElementById('usd-price');
+            if (usdEl) usdEl.innerText = `(≈ $${data.priceUsd})`;
 
-    if (pCoords && dCoords) {
-        L.Routing.control({
-            waypoints: [pCoords, dCoords],
-            lineOptions: { styles: [{ color: '#facc15', weight: 6, opacity: 0.8 }] },
-            show: false,
-            addWaypoints: false,
-            createMarker: () => null 
-        }).on('routesfound', function (e) {
-            const summary = e.routes[0].summary;
-            const timeInMinutes = Math.round((summary.totalDistance / 1000) * 3 + 2); 
+            routePoints = data.routeCoordinates.map(coord => [coord[1], coord[0]]);
+            const pCoords = routePoints[0];
+            const dCoords = routePoints[routePoints.length - 1];
 
-            const timeEl = document.getElementById('arrival-time');
-            if (timeEl) timeEl.innerText = `~ ${timeInMinutes} хв`;
+            routePolyline = L.polyline(routePoints, { color: '#facc15', weight: 6, opacity: 0.8 }).addTo(map);
 
-            map.flyTo(pCoords, 15, { animate: true, duration: 1.5 });
-        }).addTo(map);
+            map.fitBounds(routePolyline.getBounds(), { paddingLeft: [380, 50], padding: [50, 50] });
 
-        L.marker(pCoords, { icon: L.divIcon({ className: '', html: '<div style="background:#10b981; width:16px; height:16px; border-radius:50%; border:2px solid white;"></div>' }) }).addTo(map);
-        L.marker(dCoords, { icon: L.divIcon({ className: '', html: '<div style="background:#ef4444; width:16px; height:16px; border-radius:50%; border:2px solid white;"></div>' }) }).addTo(map);
-    }
+            L.marker(pCoords, { icon: L.divIcon({ className: '', html: '<div style="background:#10b981; width:16px; height:16px; border-radius:50%; border:2px solid white;"></div>' }) }).addTo(map);
+            L.marker(dCoords, { icon: L.divIcon({ className: '', html: '<div style="background:#ef4444; width:16px; height:16px; border-radius:50%; border:2px solid white;"></div>' }) }).addTo(map);
+
+            let initialAngle = 0;
+            if (routePoints.length > 1) {
+                let dy = routePoints[1][0] - routePoints[0][0];
+                let dx = routePoints[1][1] - routePoints[0][1];
+                initialAngle = Math.atan2(dx, dy) * 180 / Math.PI;
+            }
+
+            var carIcon = L.divIcon({
+                className: 'custom-car-marker-container',
+                html: carSvg,
+                iconSize: [32, 64],
+                iconAnchor: [16, 32]
+            });
+            carMarker = L.marker(pCoords, { icon: carIcon, zIndexOffset: 1000 }).addTo(map);
+
+            let img = carMarker.getElement().querySelector('svg');
+            if (img) img.style.transform = `rotate(${initialAngle}deg)`;
+
+            const statusPill = document.querySelector('.top-status-pill');
+            if (statusPill && statusPill.innerText.includes('Виконується')) {
+                const startBtn = document.getElementById('btn-start');
+                if (startBtn) startBtn.style.display = 'none';
+                startCarAnimation();
+            }
+        } else {
+            document.getElementById('arrival-time').innerText = "Час невідомий";
+        }
+    } catch (e) { console.error("Помилка маршруту:", e); }
 }
-function acceptOrder(id) {
-    fetch('/Driver/Dashboard/AcceptOrder?orderId=' + id, { method: 'POST' })
+
+function startRideAction(id) {
+    fetch(`/Driver/Dashboard/StartRide?orderId=${id}`, { method: 'POST' })
         .then(res => res.json())
         .then(data => {
             if (data.success) {
-                window.location.href = '/Driver/Dashboard/Work';
-            } else {
-                alert(data.message);
+                const startBtn = document.getElementById('btn-start');
+                if (startBtn) startBtn.style.display = 'none';
+
+                const statusPill = document.querySelector('.top-status-pill');
+                if (statusPill) statusPill.innerText = 'Виконується (в русі)';
+
+                startCarAnimation();
             }
         });
+}
+
+function startCarAnimation() {
+    if (!carMarker || routePoints.length < 2) return;
+
+    let totalDist = 0;
+    let segments = [];
+    for (let i = 0; i < routePoints.length - 1; i++) {
+        let d = window.driverMap.distance(routePoints[i], routePoints[i + 1]);
+        totalDist += d;
+        segments.push({ p1: routePoints[i], p2: routePoints[i + 1], dist: d });
+    }
+
+    let startTime = null;
+    const duration = 25000;
+
+    function animate(timestamp) {
+        if (!startTime) startTime = timestamp;
+        let progress = (timestamp - startTime) / duration;
+        if (progress > 1) progress = 1;
+
+        let targetDist = progress * totalDist;
+        let currentDist = 0;
+        let currentPos = null;
+        let angle = 0;
+
+        for (let i = 0; i < segments.length; i++) {
+            if (currentDist + segments[i].dist >= targetDist || i === segments.length - 1) {
+                let segmentProgress = segments[i].dist > 0 ? (targetDist - currentDist) / segments[i].dist : 1;
+                if (segmentProgress > 1) segmentProgress = 1;
+
+                let lat = segments[i].p1[0] + (segments[i].p2[0] - segments[i].p1[0]) * segmentProgress;
+                let lng = segments[i].p1[1] + (segments[i].p2[1] - segments[i].p1[1]) * segmentProgress;
+                currentPos = [lat, lng];
+
+                let dy = segments[i].p2[0] - segments[i].p1[0];
+                let dx = segments[i].p2[1] - segments[i].p1[1];
+                angle = Math.atan2(dx, dy) * 180 / Math.PI;
+                break;
+            }
+            currentDist += segments[i].dist;
+        }
+
+        if (currentPos) {
+            carMarker.setLatLng(currentPos);
+
+            let img = carMarker.getElement().querySelector('svg');
+            if (img) img.style.transform = `rotate(${angle}deg)`;
+
+            window.driverMap.setView(currentPos, window.driverMap.getZoom(), { animate: false });
+        }
+
+        if (progress < 1) {
+            animationInterval = requestAnimationFrame(animate);
+        } else {
+            const statusPill = document.querySelector('.top-status-pill');
+            if (statusPill) statusPill.innerText = 'Прибули на місце';
+
+            const cancelBtn = document.getElementById('btn-cancel');
+            if (cancelBtn) cancelBtn.style.display = 'none';
+
+            const finishBtn = document.getElementById('btn-finish');
+            if (finishBtn) finishBtn.style.display = 'block';
+
+            const sidebar = document.querySelector('.driver-info-sidebar');
+            if (sidebar && sidebar.classList.contains('collapsed')) {
+                sidebar.classList.remove('collapsed');
+                const icon = document.getElementById('sidebar-toggle-btn').querySelector('i');
+                if (icon) {
+                    icon.classList.remove('fa-chevron-right');
+                    icon.classList.add('fa-chevron-left');
+                }
+                setTimeout(() => window.driverMap.invalidateSize(), 400);
+            }
+        }
+    }
+
+    animationInterval = requestAnimationFrame(animate);
 }
 
 function updateRideStatus(action, id) {
@@ -126,6 +293,8 @@ function updateRideStatus(action, id) {
 }
 
 function submitCancel(id) {
+    if (animationInterval) cancelAnimationFrame(animationInterval);
+
     const reason = document.getElementById('cancelReasonId').value;
     fetch(`/Driver/Dashboard/CancelOrder?orderId=${id}&reasonId=${reason}`, { method: 'POST' })
         .then(() => window.location.href = '/Driver/Dashboard/Index');
@@ -135,6 +304,19 @@ function submitFinish(id) {
     fetch(`/Driver/Dashboard/FinishOrder?orderId=${id}&rating=${selectedRating}`, { method: 'POST' })
         .then(() => window.location.href = '/Driver/Dashboard/Wallet');
 }
+
+function acceptOrder(id) {
+    fetch('/Driver/Dashboard/AcceptOrder?orderId=' + id, { method: 'POST' })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                window.location.href = '/Driver/Dashboard/Work';
+            } else {
+                alert(data.message);
+            }
+        });
+}
+
 function switchTab(tabId) {
     const navLinks = document.querySelectorAll('.nav-tabs-custom .nav-link');
     navLinks.forEach(link => link.classList.remove('active'));
@@ -156,7 +338,7 @@ function switchTab(tabId) {
 function toggleStatus(checkbox) {
     const statusText = document.getElementById('status-text');
     const isChecked = checkbox.checked;
-    statusText.innerText = isChecked ? "Працюю" : "Перерва";
+    if (statusText) statusText.innerText = isChecked ? "Працюю" : "Перерва";
 
     fetch('/Driver/Dashboard/ToggleWorkingMode', {
         method: 'POST',
@@ -165,11 +347,11 @@ function toggleStatus(checkbox) {
     }).then(res => res.json()).then(data => {
         if (!data.success) {
             checkbox.checked = !isChecked;
-            statusText.innerText = checkbox.checked ? "Працюю" : "Перерва";
+            if (statusText) statusText.innerText = checkbox.checked ? "Працюю" : "Перерва";
         }
     }).catch(() => {
         checkbox.checked = !isChecked;
-        statusText.innerText = checkbox.checked ? "Працюю" : "Перерва";
+        if (statusText) statusText.innerText = checkbox.checked ? "Працюю" : "Перерва";
     });
 }
 
@@ -206,8 +388,10 @@ function toggleVehicleClass(btn, id) {
 function setFop(isActive) {
     document.getElementById('IsFopActiveHidden').value = isActive;
     const btns = document.querySelectorAll('.fop-btn');
-    btns[0].className = 'fop-btn ' + (isActive ? 'active-yes' : '');
-    btns[1].className = 'fop-btn ' + (!isActive ? 'active-no' : '');
+    if (btns.length >= 2) {
+        btns[0].className = 'fop-btn ' + (isActive ? 'active-yes' : '');
+        btns[1].className = 'fop-btn ' + (!isActive ? 'active-no' : '');
+    }
 }
 
 function checkWithdrawal(balance) {

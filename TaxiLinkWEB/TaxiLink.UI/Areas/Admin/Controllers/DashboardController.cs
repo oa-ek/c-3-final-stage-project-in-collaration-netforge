@@ -21,10 +21,11 @@ namespace TaxiLink.UI.Admin_areas.Controllers
     public class DashboardController : Controller
     {
         private readonly IOrderService _orderService;
-
-        public DashboardController(IOrderService orderService)
+        private readonly ICurrencyService _currencyService;
+        public DashboardController(IOrderService orderService, ICurrencyService currencyService)
         {
             _orderService = orderService;
+            _currencyService = currencyService;
         }
 
         public IActionResult Index()
@@ -52,6 +53,12 @@ namespace TaxiLink.UI.Admin_areas.Controllers
             var averageCheck = totalOrders > 0 ? Math.Round(ordersList.Average(o => o.TotalPrice), 2) : 0;
             var activeDrivers = ordersList.Where(o => o.DriverId != null).Select(o => o.DriverId).Distinct().Count();
 
+            decimal? usdRate = await _currencyService.GetRateAsync("USD");
+            decimal? eurRate = await _currencyService.GetRateAsync("EUR");
+
+            decimal totalRevenueUsd = usdRate.HasValue && usdRate.Value > 0 ? Math.Round(totalRevenue / usdRate.Value, 2) : 0;
+            decimal totalRevenueEur = eurRate.HasValue && eurRate.Value > 0 ? Math.Round(totalRevenue / eurRate.Value, 2) : 0;
+
             var revenueByDate = ordersList
                 .GroupBy(o => o.CreatedAt.Date)
                 .OrderBy(g => g.Key)
@@ -71,7 +78,7 @@ namespace TaxiLink.UI.Admin_areas.Controllers
 
             return Json(new
             {
-                kpi = new { totalOrders, totalRevenue, averageCheck, activeDrivers },
+                kpi = new { totalOrders, totalRevenue, totalRevenueUsd, totalRevenueEur, averageCheck, activeDrivers },
                 revenue = revenueByDate,
                 statuses = ordersByStatus
             });
@@ -177,7 +184,7 @@ namespace TaxiLink.UI.Admin_areas.Controllers
                         row.Cells[1].Width = 150;
                     }
 
-                    document.InsertParagraph("").SpacingAfter(40); 
+                    document.InsertParagraph("").SpacingAfter(40);
 
                     var footer1 = document.InsertParagraph("Генеральний директор     _________________   / ____________ /");
                     footer1.Font(fontName).FontSize(12);
