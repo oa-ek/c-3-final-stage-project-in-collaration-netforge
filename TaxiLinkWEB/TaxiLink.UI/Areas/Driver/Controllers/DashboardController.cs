@@ -29,6 +29,8 @@ namespace TaxiLink.UI.Areas.Driver.Controllers
         private readonly IGeocodingService _geocodingService;
         private readonly IRoutingService _routingService;
         private readonly ICurrencyService _currencyService;
+        private readonly IWeatherService _weatherService;
+
         public DashboardController(
             IDriverService driverService,
             IDriverRepository driverRepo,
@@ -45,9 +47,10 @@ namespace TaxiLink.UI.Areas.Driver.Controllers
             IGenericRepository<CancellationReason> cancelReasonRepo,
             IGenericRepository<OrderAdditionalService> orderSrvRepo,
             IGenericRepository<NewsItem> newsRepo,
-            IGeocodingService geocodingService,     
-            IRoutingService routingService,       
-            ICurrencyService currencyService)         
+            IGeocodingService geocodingService,
+            IRoutingService routingService,
+            ICurrencyService currencyService,
+            IWeatherService weatherService)
             : base(driverService)
         {
             _driverRepo = driverRepo;
@@ -64,10 +67,10 @@ namespace TaxiLink.UI.Areas.Driver.Controllers
             _cancelReasonRepo = cancelReasonRepo;
             _orderSrvRepo = orderSrvRepo;
             _newsRepo = newsRepo;
-
-            _geocodingService = geocodingService; 
-            _routingService = routingService;    
-            _currencyService = currencyService;   
+            _geocodingService = geocodingService;
+            _routingService = routingService;
+            _currencyService = currencyService;
+            _weatherService = weatherService;
         }
 
         private void SetLayoutData(TaxiLink.Domain.Models.Driver d)
@@ -96,7 +99,6 @@ namespace TaxiLink.UI.Areas.Driver.Controllers
             int userId = int.Parse(userIdClaim.Value);
 
             var currentUser = await _userRepo.GetByIdAsync(userId);
-
             var allDrivers = await _driverRepo.GetAllAsync();
             var driver = allDrivers.FirstOrDefault(d => d.UserId == userId);
 
@@ -108,7 +110,6 @@ namespace TaxiLink.UI.Areas.Driver.Controllers
                 PhoneNumber = currentUser?.PhoneNumber,
                 AvatarPath = currentUser?.AvatarPath,
                 Rating = currentUser?.Rating ?? 5.0m,
-
                 Patronymic = driver?.Patronymic,
                 DateOfBirth = driver?.DateOfBirth,
                 TaxId = driver?.TaxId,
@@ -313,7 +314,6 @@ namespace TaxiLink.UI.Areas.Driver.Controllers
             return Json(new { success = false });
         }
 
-    
         [HttpGet]
         public async Task<IActionResult> Orders()
         {
@@ -411,15 +411,26 @@ namespace TaxiLink.UI.Areas.Driver.Controllers
             }
             return View(new DriverOrderViewModel { Id = 0 });
         }
+
+        [HttpGet]
+        public async Task<IActionResult> GetCurrentWeather(string lat = "50.4501", string lon = "30.5234")
+        {
+            var weatherImpact = await _weatherService.GetWeatherImpactAsync(lat.Replace(",", "."), lon.Replace(",", "."));
+            return Json(new { success = true, condition = weatherImpact.ConditionName, multiplier = weatherImpact.TimeMultiplier });
+        }
+
         [HttpGet]
         public async Task<IActionResult> GetRouteData(int orderId)
         {
             var order = await _orderRepo.GetByIdAsync(orderId);
             if (order == null) return Json(new { success = false });
+
             var startCoords = await _geocodingService.GetCoordinatesAsync(order.PickupAddress + ", Київ");
             var endCoords = await _geocodingService.GetCoordinatesAsync(order.DropoffAddress + ", Київ");
+
             if (startCoords == null) startCoords = ("50.4501", "30.5234");
             if (endCoords == null) endCoords = ("50.4422", "30.5367");
+
             var routeInfo = await _routingService.GetRouteInfoAsync(
                 startCoords.Value.Lat, startCoords.Value.Lon,
                 endCoords.Value.Lat, endCoords.Value.Lon
@@ -427,6 +438,12 @@ namespace TaxiLink.UI.Areas.Driver.Controllers
 
             if (routeInfo == null)
                 return Json(new { success = false, message = "Не вдалося побудувати маршрут." });
+
+            string sLat = startCoords.Value.Lat.Replace(",", ".");
+            string sLon = startCoords.Value.Lon.Replace(",", ".");
+            var weatherImpact = await _weatherService.GetWeatherImpactAsync(sLat, sLon);
+            double adjustedDuration = Math.Ceiling(routeInfo.Value.DurationMinutes * weatherImpact.TimeMultiplier);
+
             var usdRate = await _currencyService.GetRateAsync("USD");
             decimal priceUsd = usdRate.HasValue && usdRate.Value > 0
                 ? Math.Round(order.TotalPrice / usdRate.Value, 2)
@@ -436,11 +453,14 @@ namespace TaxiLink.UI.Areas.Driver.Controllers
             {
                 success = true,
                 distance = routeInfo.Value.DistanceKm,
-                duration = routeInfo.Value.DurationMinutes,
+                duration = adjustedDuration,
                 priceUsd = priceUsd,
-                routeCoordinates = routeInfo.Value.Coordinates
+                routeCoordinates = routeInfo.Value.Coordinates,
+                weatherCondition = weatherImpact.ConditionName,
+                weatherMultiplier = weatherImpact.TimeMultiplier
             });
         }
+
         [HttpGet]
         public async Task<IActionResult> News()
         {
@@ -452,6 +472,7 @@ namespace TaxiLink.UI.Areas.Driver.Controllers
             var sortedNews = allNews.OrderByDescending(n => n.PublishedAt).ToList();
             return View(sortedNews);
         }
+
         [HttpGet]
         public async Task<IActionResult> Wallet()
         {
@@ -501,6 +522,7 @@ namespace TaxiLink.UI.Areas.Driver.Controllers
 
             return View(model);
         }
+
         [HttpPost]
         public async Task<IActionResult> RefillWallet(decimal amount)
         {
@@ -534,6 +556,7 @@ namespace TaxiLink.UI.Areas.Driver.Controllers
             }
             return Json(new { success = false });
         }
+
         [HttpPost]
         public async Task<IActionResult> AcceptOrder(int orderId)
         {
@@ -592,6 +615,7 @@ namespace TaxiLink.UI.Areas.Driver.Controllers
             }
             return Json(new { success = false });
         }
+
         [HttpPost]
         public async Task<IActionResult> CancelOrder(int orderId, int reasonId)
         {
@@ -629,7 +653,7 @@ namespace TaxiLink.UI.Areas.Driver.Controllers
             }
             return Json(new { success = false });
         }
-    
+
         [HttpPost]
         public async Task<IActionResult> CreateOrder(string pickup, string dropoff, decimal distance, int vehicleClassId, string comment, List<int> selectedServices, decimal finalPrice)
         {

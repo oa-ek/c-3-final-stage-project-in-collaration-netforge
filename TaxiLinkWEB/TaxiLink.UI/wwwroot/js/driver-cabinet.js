@@ -95,6 +95,25 @@ document.addEventListener("DOMContentLoaded", function () {
                     iconAnchor: [13, 26]
                 });
                 L.marker([50.4501, 30.5234], { icon: carIcon }).addTo(window.driverMap);
+
+                fetch('/Driver/Dashboard/GetCurrentWeather')
+                    .then(res => res.json())
+                    .then(wData => {
+                        if (wData.success) {
+                            const wWidget = document.getElementById('index-weather-widget');
+                            if (wWidget) {
+                                let icon = "☀️";
+                                if (wData.condition.includes("Дощ") || wData.condition.includes("Мряка")) icon = "🌧️";
+                                if (wData.condition.includes("Сніг")) icon = "❄️";
+                                if (wData.condition.includes("Гроза")) icon = "⚡";
+
+                                document.getElementById('index-weather-icon').innerText = icon;
+                                document.getElementById('index-weather-text').innerText = wData.condition;
+                                document.getElementById('index-weather-coef').innerText = `Коефіцієнт: x${wData.multiplier.toFixed(1)}`;
+                                wWidget.style.display = "flex";
+                            }
+                        }
+                    });
             }
             window.driverMap.invalidateSize();
         }, 300);
@@ -142,6 +161,33 @@ async function setupRouteOnMap(map, pickup, dropoff, orderId) {
             document.getElementById('arrival-time').innerText = `~ ${data.duration} хв`;
             const usdEl = document.getElementById('usd-price');
             if (usdEl) usdEl.innerText = `(≈ $${data.priceUsd})`;
+
+            const weatherAlert = document.getElementById('weather-alert');
+            if (weatherAlert && data.weatherCondition) {
+                let icon = "☀️";
+                let colorClass = "text-success";
+                let prefix = "Сприятливі умови:";
+
+                if (data.weatherCondition.includes("Дощ") || data.weatherCondition.includes("Мряка")) {
+                    icon = "🌧️";
+                    colorClass = "text-warning";
+                    prefix = "Ускладнені умови:";
+                } else if (data.weatherCondition.includes("Сніг")) {
+                    icon = "❄️";
+                    colorClass = "text-info";
+                    prefix = "Ускладнені умови:";
+                } else if (data.weatherCondition.includes("Гроза")) {
+                    icon = "⚡";
+                    colorClass = "text-danger";
+                    prefix = "Складні умови:";
+                }
+
+                weatherAlert.className = `small fw-bold mt-1 ${colorClass}`;
+                weatherAlert.innerText = `${icon} ${prefix} ${data.weatherCondition} (Коеф: x${data.weatherMultiplier.toFixed(1)})`;
+                weatherAlert.style.display = "block";
+            } else if (weatherAlert) {
+                weatherAlert.style.display = "none";
+            }
 
             routePoints = data.routeCoordinates.map(coord => [coord[1], coord[0]]);
             const pCoords = routePoints[0];
