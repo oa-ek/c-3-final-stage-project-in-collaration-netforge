@@ -14,7 +14,6 @@ using TaxiLink.Services.Implementations;
 using TaxiLink.Services.Interfaces;
 using TaxiLink.UI;
 
-
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllersWithViews();
@@ -22,6 +21,7 @@ builder.Services.AddDataProtection();
 builder.Services.AddMemoryCache();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
@@ -45,23 +45,20 @@ builder.Services.AddAuthentication(options =>
 
 builder.Services.AddDbContext<DBContextTaxiLink>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
-
 builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IDriverRepository, DriverRepository>();
 builder.Services.AddScoped<IVehicleRepository, VehicleRepository>();
 builder.Services.AddScoped<IOrderRepository, OrderRepository>();
-
 builder.Services.AddScoped<IDictionaryService, DictionaryService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IMarketingService, MarketingService>();
 builder.Services.AddScoped<IDriverService, DriverService>();
 builder.Services.AddScoped<IOrderService, OrderService>();
-
 builder.Services.AddScoped<ICurrencyService, CurrencyService>();
 builder.Services.AddScoped<IGeocodingService, GeocodingService>();
 builder.Services.AddScoped<IRoutingService, RoutingService>();
-
+builder.Services.AddScoped<IWeatherService, WeatherService>(); 
 builder.Services.AddHttpClient("NBU", client =>
 {
     client.BaseAddress = new Uri(builder.Configuration["ExternalApis:NBU:BaseUrl"]!);
@@ -83,7 +80,16 @@ builder.Services.AddHttpClient("OpenRouteService", client =>
     client.Timeout = TimeSpan.FromSeconds(5);
 })
 .AddTransientHttpErrorPolicy(policy => policy.WaitAndRetryAsync(2, _ => TimeSpan.FromSeconds(2)));
+
+builder.Services.AddHttpClient("OpenMeteo", client =>
+{
+    client.BaseAddress = new Uri(builder.Configuration["ExternalApis:OpenMeteo:BaseUrl"]!);
+    client.Timeout = TimeSpan.FromSeconds(5); 
+})
+.AddTransientHttpErrorPolicy(policy => policy.WaitAndRetryAsync(2, _ => TimeSpan.FromSeconds(2))); 
+
 var app = builder.Build();
+
 
 if (!app.Environment.IsDevelopment())
 {
@@ -95,6 +101,7 @@ app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseSwagger();
 app.UseSwaggerUI();
+
 app.UseRouting();
 
 app.UseAuthentication();
