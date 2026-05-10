@@ -1,147 +1,165 @@
-﻿@using TaxiLink.Domain.Models
+﻿@model TaxiLink.UI.Areas.Client.Models.ClientDashboardViewModel
 @{
-    Layout = "_Layout";
+    Layout = "_ClientLayout";
 }
 
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-<link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.css" />
+<div id="map"></div>
 
-<style>
+<div id="panel-search" class="floating-panel bottom-center panel-large">
+    <h3 class="panel-title">Куди поїдемо, @Model.User.FirstName?</h3>
+    <div class="search-input-box mb-4">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <input type="text" id="dropoff" placeholder="Введіть адресу або клікніть на карту..." readonly />
+    </div>
+    <div class="quick-links">
+        <button class="quick-link-btn"><i class="fa-solid fa-house"></i> Додому</button>
+        <button class="quick-link-btn"><i class="fa-solid fa-briefcase"></i> Робота</button>
+    </div>
+    <input type="hidden" id="pickup" value="Визначаємо..." />
+</div>
 
-    #map {
-        height: 450px;
-        width: 100%;
-        border-radius: 20px;
-        margin-bottom: 20px;
-        border: 2px solid #ddd;
-        z-index: 1; 
-    }
+<div id="panel-order" class="floating-panel bottom-center panel-large d-none">
+    <button id="btn-back" class="btn-text mb-3"><i class="fa-solid fa-chevron-left"></i> Назад</button>
 
-    .order-panel {
-        background: #f8f9fa;
-        padding: 25px;
-        border-radius: 20px;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-    }
-</style>
+    <div class="route-info mb-4">
+        <div class="route-dots">
+            <span class="dot green"></span>
+            <span class="line"></span>
+            <span class="dot red"></span>
+        </div>
+        <div class="route-texts">
+            <div id="ui-pickup-text" class="text-truncate text-muted small"></div>
+            <div id="ui-dropoff-text" class="text-truncate fw-bold"></div>
+        </div>
+    </div>
 
-<div class="container mt-4">
-    <h2 class="fw-bold mb-4">Куди їдемо?</h2>
-
-    <div id="map"></div>
-
-    <div class="order-panel">
-        <form asp-action="Confirm" method="post">
-            <div class="row g-3">
-                <div class="col-md-6">
-                    <label class="form-label fw-bold">Звідки</label>
-                    <input type="text" name="pickup" id="pickup" class="form-control py-3" placeholder="Вул. Хрещатик, 1" required />
-                </div>
-                <div class="col-md-6">
-                    <label class="form-label fw-bold">Куди</label>
-                    <input type="text" name="dropoff" id="dropoff" class="form-control py-3" placeholder="Аеропорт Бориспіль" required />
-                </div>
-
-                <input type="hidden" name="distance" id="distance_input" value="0" />
-
-                <div class="col-12 mt-4">
-                    <label class="form-label d-block fw-bold">Оберіть клас авто:</label>
-                    <div class="d-flex flex-wrap gap-3">
-                        @foreach (var vc in (IEnumerable<VehicleClass>)ViewBag.VehicleClasses)
-                        {
-                            <div class="form-check border p-3 rounded-4 flex-fill" style="min-width: 150px; background: white;">
-                                <input class="form-check-input ms-0 me-2" type="radio" name="vehicleClassId" value="@vc.Id" id="class_@vc.Id" required>
-                                <label class="form-check-label" for="class_@vc.Id">
-                                    <strong>@vc.Name</strong><br />
-                                    <span class="text-success fw-bold">@vc.BasePrice ₴</span>
-                                </label>
-                            </div>
-                        }
-                    </div>
-                </div>
-
-                <div class="col-12 text-end mt-4">
-                    <button type="submit" class="btn btn-warning btn-lg px-5 py-3 fw-bold shadow">
-                        Підтвердити маршрут <i class="fa-solid fa-arrow-right ms-2"></i>
-                    </button>
-                </div>
+    <div class="section-title">Оберіть клас</div>
+    <div class="class-carousel mb-4">
+        @foreach (var vc in Model.VehicleClasses)
+        {
+            <div class="class-card" data-id="@vc.Id" data-base="@vc.BasePrice" data-perkm="@vc.PricePerKm">
+                <i class="fa-solid fa-car-side fs-2 mb-2" style="color: @(vc.Name == "Економ" ? "#ef4444" : vc.Name == "Комфорт" ? "#3b82f6" : "#a855f7")"></i>
+                <div class="fw-bold fs-6">@vc.Name</div>
+                <div class="text-warning fw-bold mt-1">від @vc.BasePrice ₴</div>
             </div>
-        </form>
+        }
+    </div>
+
+    <div class="action-buttons mb-4">
+        <div class="action-btn"><i class="fa-regular fa-credit-card me-2"></i> Картка</div>
+        <div class="action-btn"><i class="fa-solid fa-tag me-2"></i> Промокод</div>
+        <div class="action-btn" id="btn-options"><i class="fa-solid fa-sliders me-2"></i> Послуги</div>
+    </div>
+
+    <textarea id="order-comment" class="form-control-custom mb-4" rows="1" placeholder="Коментар для водія (напр. під'їзд 2)"></textarea>
+
+    <button id="btn-order" class="btn-primary w-100 fs-5">
+        Замовити <span id="ui-class-name">авто</span> • <span id="ui-total-price">0</span> ₴
+    </button>
+</div>
+
+<div id="panel-options" class="floating-panel center-screen panel-large d-none">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h4 class="m-0 fw-bold">Додаткові послуги</h4>
+        <button id="btn-close-options" class="icon-btn" style="width: 35px; height:35px; font-size:14px;"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="services-list mb-4">
+        @foreach (var srv in Model.AdditionalServices)
+        {
+            <label class="service-toggle">
+                <div class="service-info">
+                    <span class="fw-bold">@srv.Name</span>
+                    <span class="text-warning small">+@srv.Price ₴</span>
+                </div>
+                <input type="checkbox" class="srv-checkbox" value="@srv.Id" data-price="@srv.Price.ToString().Replace(",", ".")">
+                <span class="toggle-slider"></span>
+            </label>
+        }
+    </div>
+    <button id="btn-apply-options" class="btn-primary w-100">Застосувати</button>
+</div>
+
+<div id="panel-searching" class="floating-panel center-screen panel-large d-none">
+    <div class="radar-container mb-4">
+        <div class="radar-ring"></div>
+        <div class="radar-ring delay-1"></div>
+        <div class="radar-ring delay-2"></div>
+        <i class="fa-solid fa-magnifying-glass search-icon"></i>
+    </div>
+    <h3 class="text-center fw-bold mb-2">Шукаємо найкращого водія...</h3>
+    <p class="text-center text-muted small mb-4">Це займе лише кілька секунд</p>
+
+    <div class="search-route-info mb-4">
+        <div class="route-dots">
+            <span class="dot green"></span>
+            <span class="line"></span>
+            <span class="dot red"></span>
+        </div>
+        <div class="route-texts w-100">
+            <div id="search-pickup" class="text-truncate text-muted small mb-2"></div>
+            <div id="search-dropoff" class="text-truncate text-white small"></div>
+        </div>
+    </div>
+
+    <h2 class="text-center text-warning fw-bold mb-4"><span id="search-price"></span> ₴ <span class="fs-5 text-muted fw-normal">/ $<span id="search-price-usd"></span></span></h2>
+    <button class="btn-cancel w-100" id="btn-cancel-search">Скасувати замовлення</button>
+</div>
+
+<div id="panel-active-ride" class="floating-panel top-center panel-large d-none p-4">
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <h4 class="m-0 fw-bold d-flex align-items-center gap-2">
+            <i class="fa-solid fa-circle-check text-success"></i> <span id="ui-status-text">Водій прямує до вас</span>
+        </h4>
+        <div class="text-end">
+            <div class="small text-muted mb-1">Орієнтовно</div>
+            <div id="ui-eta" class="fw-bold fs-5 text-warning">~ хв</div>
+        </div>
+    </div>
+
+    <div class="driver-info-main d-flex align-items-center mb-4 p-3 rounded-4" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05);">
+        <div class="driver-avatar-large me-4" id="ui-driver-avatar-container"></div>
+        <div class="flex-grow-1">
+            <h3 id="ui-driver-name" class="m-0 fw-bold fs-4"></h3>
+            <div class="text-warning mt-1"><i class="fa-solid fa-star"></i> <span id="ui-driver-rating"></span></div>
+        </div>
+    </div>
+
+    <div class="car-info-grid mb-4">
+        <div class="text-muted">Автомобіль</div>
+        <div id="ui-car-brand" class="text-end fw-bold text-white"></div>
+        <div class="text-muted">Колір</div>
+        <div id="ui-car-color" class="text-end fw-bold text-white"></div>
+    </div>
+
+    <div class="text-center mb-4">
+        <span id="ui-car-plate" class="car-plate-large"></span>
+    </div>
+
+    <div class="d-flex gap-3">
+        <button class="btn-action-outline green flex-fill py-3"><i class="fa-solid fa-phone me-2"></i> Подзвонити</button>
+        <button class="btn-action-outline blue flex-fill py-3"><i class="fa-regular fa-comment me-2"></i> Написати</button>
     </div>
 </div>
 
-@section Scripts {
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<div id="panel-review" class="floating-panel center-screen panel-large d-none">
+    <div class="text-center mb-4">
+        <div class="success-circle"><i class="fa-solid fa-check"></i></div>
+    </div>
+    <h2 class="text-center fw-bold mb-2">Дякуємо за поїздку!</h2>
+    <p class="text-center text-warning mb-4 fs-5">Сплачено: <span id="review-price"></span> ₴</p>
 
-    <script>
-        var map = L.map('map').setView([50.4501, 30.5234], 12);
+    <p class="text-center text-muted mb-3">Оцініть водія</p>
+    <div class="stars-container d-flex justify-content-center gap-3 mb-5">
+        <i class="fa-solid fa-star star-icon" data-val="1"></i>
+        <i class="fa-solid fa-star star-icon" data-val="2"></i>
+        <i class="fa-solid fa-star star-icon" data-val="3"></i>
+        <i class="fa-solid fa-star star-icon" data-val="4"></i>
+        <i class="fa-solid fa-star star-icon" data-val="5"></i>
+    </div>
 
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© OpenStreetMap contributors'
-        }).addTo(map);
+    <textarea class="form-control-custom mb-4" rows="3" placeholder="Залиште коментар для водія (необов'язково)..."></textarea>
+    <button class="btn-primary w-100 fs-5" onclick="location.reload()">Відправити відгук</button>
+</div>
 
-        var markerA = null;
-        var markerB = null;
-        window.routeLine = null; 
-
-        async function getAddressFromCoords(lat, lng) {
-            try {
-                let response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
-                let data = await response.json();
-                if (data.address) {
-                    let road = data.address.road || data.address.pedestrian || "Вулиця";
-                    let house = data.address.house_number || "";
-                    return `${road} ${house}`.trim();
-                }
-                return data.display_name.split(',')[0];
-            } catch (e) {
-                return `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
-            }
-        }
-
-        map.on('click', async function (e) {
-            if (!markerA || (markerA && markerB)) {
-                if (markerA) map.removeLayer(markerA);
-                if (markerB) map.removeLayer(markerB);
-                if (window.routeLine) map.removeLayer(window.routeLine);
-                markerB = null;
-
-                markerA = L.marker(e.latlng, { icon: L.divIcon({ className: '', html: '<div style="background-color:#10b981; width:16px; height:16px; border-radius:50%; border:2px solid white;"></div>' }) }).addTo(map);
-                document.getElementById('pickup').value = "Визначаємо адресу...";
-                document.getElementById('pickup').value = await getAddressFromCoords(e.latlng.lat, e.latlng.lng);
-            }
-            else if (!markerB) {
-                markerB = L.marker(e.latlng, { icon: L.divIcon({ className: '', html: '<div style="background-color:#ef4444; width:16px; height:16px; border-radius:50%; border:2px solid white;"></div>' }) }).addTo(map);
-                document.getElementById('dropoff').value = "Визначаємо адресу...";
-                document.getElementById('dropoff').value = await getAddressFromCoords(e.latlng.lat, e.latlng.lng);
-                drawRoute();
-            }
-        });
-
-        async function drawRoute() {
-            if (markerA && markerB) {
-                let p1 = markerA.getLatLng();
-                let p2 = markerB.getLatLng();
-
-                try {
-                    let res = await fetch(`/Client/Dashboard/GetRouteFromCoords?startLat=${p1.lat}&startLon=${p1.lng}&endLat=${p2.lat}&endLon=${p2.lng}`);
-                    let data = await res.json();
-
-                    if (data.success) {
-                        document.getElementById('distance_input').value = data.distance.toString().replace('.', ',');
-                        let routeCoords = data.coordinates.map(c => [c[1], c[0]]);
-                        if (window.routeLine) map.removeLayer(window.routeLine);
-
-                        window.routeLine = L.polyline(routeCoords, { color: '#2563eb', weight: 6, opacity: 0.8 }).addTo(map);
-                        map.fitBounds(window.routeLine.getBounds(), { padding: [50, 50] });
-
-                    } else {
-                        alert("Не вдалося прокласти маршрут між цими точками.");
-                    }
-                } catch (e) {
-                    console.error("Помилка:", e);
-                }
-            }
-        }
-    </script>
-}
+<input type="hidden" id="cityMultiplier" value="@Model.CityMultiplier.ToString().Replace(",", ".")" />
+<input type="hidden" id="usdRate" value="@Model.UsdRate.ToString().Replace(",", ".")" />

@@ -1,0 +1,99 @@
+﻿@model TaxiLink.UI.Areas.Client.Models.ClientDashboardViewModel
+@{
+    Layout = "_ClientLayout";
+    ViewData["Title"] = "Профіль";
+}
+
+<div class="profile-header mt-4 pt-4">
+    <a href="@Url.Action("Index", "Dashboard", new { area = "Client" })" class="btn-text text-decoration-none fs-5"><i class="fa-solid fa-chevron-left me-2"></i> Назад</a>
+    <h2 class="m-0 text-center w-100 fw-bold">Профіль</h2>
+</div>
+
+<div class="profile-content">
+    <form method="post" enctype="multipart/form-data" action="@Url.Action("Profile", "Dashboard", new { area = "Client" })">
+        <div class="text-center mb-5 relative">
+            <div class="avatar-large mx-auto mb-3" style="position: relative; overflow: hidden; border: 2px solid #facc15; cursor: pointer;" id="avatarUploadBtn">
+                @if (string.IsNullOrEmpty(Model.User.AvatarPath))
+                {
+                    <span id="avatarText">@Model.User.FirstName.Substring(0, 1)</span>
+                    <img id="avatarPreview" src="" class="d-none w-100 h-100" style="object-fit: cover;" />
+                }
+                else
+                {
+                    <img id="avatarPreview" src="@Model.User.AvatarPath" class="w-100 h-100" style="object-fit: cover;" />
+                }
+            </div>
+            <button type="button" class="btn-text mx-auto" onclick="document.getElementById('avatarInput').click()">Змінити фото</button>
+            <input type="file" id="avatarInput" name="AvatarUpload" accept="image/*" class="d-none" />
+        </div>
+
+        <div class="form-group mb-4">
+            <label class="text-muted mb-2">Ім'я</label>
+            <input type="text" name="FirstName" class="form-control-custom py-3" value="@Model.User.FirstName" required />
+        </div>
+        <div class="form-group mb-4">
+            <label class="text-muted mb-2">Прізвище</label>
+            <input type="text" name="LastName" class="form-control-custom py-3" value="@Model.User.LastName" />
+        </div>
+        <div class="form-group mb-4">
+            <label class="text-muted mb-2">Телефон</label>
+            <input type="text" name="PhoneNumber" class="form-control-custom py-3" value="@Model.User.PhoneNumber" required />
+        </div>
+        <div class="form-group mb-5">
+            <label class="text-muted mb-2">Email</label>
+            <input type="email" name="Email" class="form-control-custom py-3" value="@Model.User.Email" />
+        </div>
+
+        <div class="section-title mt-4">Інтеграція</div>
+        <div class="google-box @(Model.IsGoogleLinked ? "linked" : "") mb-5">
+            <i class="fa-brands fa-google fs-3"></i>
+            <div class="flex-grow-1 ms-4">
+                <div class="fw-bold fs-5">Google Акаунт</div>
+                <div class="small text-muted mt-1">@(Model.IsGoogleLinked ? "Підключено" : "Не підключено")</div>
+            </div>
+            @if (!Model.IsGoogleLinked)
+            {
+                <a href="/Auth/ExternalLogin?provider=Google" class="btn-outline-yellow btn-sm py-2 px-3">Підключити</a>
+            }
+        </div>
+
+        <div class="section-title mt-4">Налаштування поїздок</div>
+        <div class="settings-box mb-5">
+            <label class="service-toggle py-4">
+                <div class="service-info">
+                    <span class="fw-bold fs-6">Тиха поїздка</span>
+                    <div class="text-muted small mt-1">Водій не буде розмовляти</div>
+                </div>
+                <input type="checkbox" name="PrefersSilentRide" value="true" @(Model.User.PrefersSilentRide ? "checked" : "")>
+                <span class="toggle-slider"></span>
+            </label>
+            <hr class="border-secondary my-0" />
+            <label class="service-toggle py-4">
+                <div class="service-info">
+                    <span class="fw-bold fs-6">Без музики</span>
+                    <div class="text-muted small mt-1">Вимкнути музику в авто</div>
+                </div>
+                <input type="checkbox" name="PrefersNoMusic" value="true" @(Model.User.PrefersNoMusic ? "checked" : "")>
+                <span class="toggle-slider"></span>
+            </label>
+        </div>
+
+        <button type="submit" class="btn-primary w-100 fs-5 mt-4 mb-5">Зберегти зміни</button>
+    </form>
+</div>
+
+<script>
+    document.getElementById('avatarInput').addEventListener('change', function (e) {
+        if (this.files && this.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                const preview = document.getElementById('avatarPreview');
+                const text = document.getElementById('avatarText');
+                if(text) text.classList.add('d-none');
+                preview.src = e.target.result;
+                preview.classList.remove('d-none');
+            };
+            reader.readAsDataURL(this.files[0]);
+        }
+    });
+</script>
