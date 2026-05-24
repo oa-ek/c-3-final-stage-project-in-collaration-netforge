@@ -331,11 +331,8 @@ namespace TaxiLink.UI.Areas.Driver.Controllers
                 .OrderByDescending(o => o.CreatedAt)
                 .Select(o => {
                     var passenger = allUsers.FirstOrDefault(u => u.Id == o.UserId);
-                    string pName = o.PassengerName;
-                    if (string.IsNullOrEmpty(pName))
-                    {
-                        pName = (passenger?.Id == _currentDriver.UserId) ? "Олена (Тестовий клієнт)" : passenger?.FirstName;
-                    }
+
+                    string pName = !string.IsNullOrEmpty(o.PassengerName) ? o.PassengerName : passenger?.FirstName ?? "Клієнт";
 
                     var srvIds = o.OrderAdditionalServices?.Select(x => x.AdditionalServiceId).ToList();
                     if (srvIds == null || !srvIds.Any())
@@ -356,7 +353,7 @@ namespace TaxiLink.UI.Areas.Driver.Controllers
                         StatusName = o.OrderStatus?.Name ?? "Очікується",
                         PaymentMethodName = o.PaymentMethod?.Name ?? "Готівка",
                         VehicleClassName = o.VehicleClass?.Name ?? "Стандарт",
-                        PassengerName = pName ?? "Клієнт",
+                        PassengerName = pName,
                         SelectedServices = srvNames
                     };
                 }).ToList();
@@ -373,7 +370,8 @@ namespace TaxiLink.UI.Areas.Driver.Controllers
             ViewBag.CancelReasons = await _cancelReasonRepo.GetAllAsync();
 
             var allOrders = await _orderRepo.GetAllAsync();
-            var activeOrder = allOrders.FirstOrDefault(o => o.DriverId == _currentDriver.Id && o.OrderStatus?.Name != "Завершено" && o.OrderStatus?.Name != "Скасовано");
+
+            var activeOrder = allOrders.FirstOrDefault(o => o.DriverId == _currentDriver.Id && o.OrderStatusId != 4 && o.OrderStatusId != 5);
 
             if (activeOrder != null)
             {
@@ -382,11 +380,8 @@ namespace TaxiLink.UI.Areas.Driver.Controllers
                 var allUsers = await _userRepo.GetAllAsync();
 
                 var passenger = allUsers.FirstOrDefault(u => u.Id == activeOrder.UserId);
-                string pName = activeOrder.PassengerName;
-                if (string.IsNullOrEmpty(pName))
-                {
-                    pName = (passenger?.Id == _currentDriver.UserId) ? "Олена (Тестовий клієнт)" : passenger?.FirstName;
-                }
+
+                string pName = !string.IsNullOrEmpty(activeOrder.PassengerName) ? activeOrder.PassengerName : passenger?.FirstName ?? "Клієнт";
 
                 var srvIds = activeOrder.OrderAdditionalServices?.Select(x => x.AdditionalServiceId).ToList();
                 if (srvIds == null || !srvIds.Any())
@@ -400,7 +395,7 @@ namespace TaxiLink.UI.Areas.Driver.Controllers
                     Id = activeOrder.Id,
                     PickupAddress = activeOrder.PickupAddress,
                     DropoffAddress = activeOrder.DropoffAddress,
-                    PassengerName = pName ?? "Клієнт",
+                    PassengerName = pName,
                     ClientComment = activeOrder.ClientComment,
                     Distance = activeOrder.Distance,
                     TotalPrice = activeOrder.TotalPrice,
@@ -485,7 +480,7 @@ namespace TaxiLink.UI.Areas.Driver.Controllers
 
             var allOrders = await _orderRepo.GetAllAsync();
             var completedOrders = allOrders
-                .Where(o => o.DriverId == driver.Id && o.OrderStatus?.Name == "Завершено")
+                .Where(o => o.DriverId == driver.Id && o.OrderStatusId == 4)
                 .ToList();
 
             var model = new WalletViewModel
@@ -566,8 +561,7 @@ namespace TaxiLink.UI.Areas.Driver.Controllers
             if (order != null && order.DriverId == null)
             {
                 order.DriverId = _currentDriver.Id;
-                var acceptedStatus = (await _statusRepo.GetAllAsync()).FirstOrDefault(s => s.Name == "В дорозі до клієнта");
-                order.OrderStatusId = acceptedStatus?.Id ?? 2;
+                order.OrderStatusId = 2;
 
                 _orderRepo.Update(order);
                 await _orderRepo.SaveChangesAsync();
@@ -582,8 +576,7 @@ namespace TaxiLink.UI.Areas.Driver.Controllers
             var order = await _orderRepo.GetByIdAsync(orderId);
             if (order != null && order.DriverId == _currentDriver.Id)
             {
-                var activeStatus = (await _statusRepo.GetAllAsync()).FirstOrDefault(s => s.Name == "Виконується");
-                order.OrderStatusId = activeStatus?.Id ?? order.OrderStatusId;
+                order.OrderStatusId = 3;
 
                 _orderRepo.Update(order);
                 await _orderRepo.SaveChangesAsync();
@@ -600,8 +593,7 @@ namespace TaxiLink.UI.Areas.Driver.Controllers
 
             if (order != null && driver != null)
             {
-                var completedStatus = (await _statusRepo.GetAllAsync()).FirstOrDefault(s => s.Name == "Завершено");
-                order.OrderStatusId = completedStatus?.Id ?? 4;
+                order.OrderStatusId = 4;
                 order.CompletedAt = DateTime.Now;
 
                 decimal commission = order.TotalPrice * (driver.CommissionRate / 100m);
@@ -625,8 +617,7 @@ namespace TaxiLink.UI.Areas.Driver.Controllers
 
             if (order != null && driver != null)
             {
-                var cancelStatus = (await _statusRepo.GetAllAsync()).FirstOrDefault(s => s.Name == "Скасовано");
-                order.OrderStatusId = cancelStatus?.Id ?? 5;
+                order.OrderStatusId = 5;
                 order.CancellationReasonId = reasonId;
 
                 driver.WalletBalance -= penalty;
@@ -694,4 +685,5 @@ namespace TaxiLink.UI.Areas.Driver.Controllers
             return RedirectToAction("Orders", "Dashboard", new { area = "Driver" });
         }
     }
+    
 }

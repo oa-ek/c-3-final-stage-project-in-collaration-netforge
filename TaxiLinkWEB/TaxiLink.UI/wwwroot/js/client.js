@@ -41,7 +41,18 @@ document.addEventListener("DOMContentLoaded", () => {
     L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
 
     let markerA = null, markerB = null, routeLine = null, carMarker = null;
-    let orderState = { distance: 0, classId: null, basePrice: 0, perKm: 0, routeCoords: [], durationMin: 0 };
+    let orderState = {
+        distance: 0,
+        classId: null,
+        basePrice: 0,
+        perKm: 0,
+        routeCoords: [],
+        durationMin: 0,
+        weatherMultiplier: 1.0,
+        promoDiscount: 0,
+        promoCodeId: null,
+        paymentMethodId: 1
+    };
 
     let cityMultiplierElement = document.getElementById('cityMultiplier');
     let usdRateElement = document.getElementById('usdRate');
@@ -60,6 +71,7 @@ document.addEventListener("DOMContentLoaded", () => {
             if (routeLine) map.removeLayer(routeLine);
             if (carMarker) map.removeLayer(carMarker);
             markerB = null;
+            isAnimationStarted = false;
 
             markerA = L.marker(e.latlng, { icon: createDot('#10b981') }).addTo(map);
             document.getElementById('pickup').value = await getAddress(e.latlng.lat, e.latlng.lng);
@@ -91,13 +103,20 @@ document.addEventListener("DOMContentLoaded", () => {
 
     async function drawRouteAndShowPanel() {
         let p1 = markerA.getLatLng(), p2 = markerB.getLatLng();
-        let res = await fetch(`/Client/Dashboard/GetRouteFromCoords?startLat=${p1.lat}&startLon=${p1.lng}&endLat=${p2.lat}&endLon=${p2.lng}`);
+        let res = await fetch(`/Client/Dashboard/GetRouteData?startLat=${p1.lat}&startLon=${p1.lng}&endLat=${p2.lat}&endLon=${p2.lng}`);
         let data = await res.json();
 
         if (data.success) {
             orderState.distance = data.distance;
             orderState.routeCoords = data.coordinates.map(c => [c[1], c[0]]);
             orderState.durationMin = data.duration || Math.ceil(data.distance * 2);
+            orderState.weatherMultiplier = data.weatherMultiplier;
+
+            let distVal = document.getElementById('ui-distance-val');
+            if (distVal) distVal.innerText = data.distance.toFixed(1);
+
+            let weatherDisplay = document.getElementById('ui-weather-display');
+            if (weatherDisplay) weatherDisplay.innerHTML = `<i class="fa-solid fa-cloud-sun text-info me-1"></i> ${data.weatherCondition}`;
 
             routeLine = L.polyline(orderState.routeCoords, { color: '#facc15', weight: 4 }).addTo(map);
             map.fitBounds(routeLine.getBounds(), { padding: [50, 50] });
@@ -127,16 +146,84 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function calculateTotal() {
         if (!orderState.classId) return;
-        let price = (orderState.basePrice + (orderState.distance * orderState.perKm)) * multiplier;
+
+        let price = (orderState.basePrice + (orderState.distance * orderState.perKm)) * multiplier * orderState.weatherMultiplier;
+
         document.querySelectorAll('.srv-checkbox:checked').forEach(cb => price += parseFloat(cb.getAttribute('data-price')));
+
+        if (orderState.promoDiscount > 0) {
+            price = price - (price * (orderState.promoDiscount / 100));
+        }
 
         let finalPrice = Math.round(price);
         let usdPrice = (finalPrice / usdRate).toFixed(2);
 
         document.getElementById('ui-total-price').innerText = finalPrice;
-        document.getElementById('search-price').innerText = finalPrice;
-        document.getElementById('search-price-usd').innerText = usdPrice;
-        document.getElementById('review-price').innerText = finalPrice;
+
+        let orderBtnUsd = document.getElementById('ui-total-price-usd');
+        if (orderBtnUsd) orderBtnUsd.innerText = usdPrice;
+
+        let searchPriceEl = document.getElementById('search-price');
+        if (searchPriceEl) searchPriceEl.innerText = finalPrice;
+        let usdPriceEl = document.getElementById('search-price-usd');
+        if (usdPriceEl) usdPriceEl.innerText = usdPrice;
+        let reviewPriceEl = document.getElementById('review-price');
+        if (reviewPriceEl) reviewPriceEl.innerText = finalPrice;
+    }
+
+    window.openPaymentModal = function () {
+        document.getElementById('panel-order').classList.add('d-none');
+        document.getElementById('modal-payment').classList.remove('d-none');
+    }
+
+    window.openPromoModal = function () {
+        document.getElementById('panel-order').classList.add('d-none');
+        document.getElementById('modal-promo').classList.remove('d-none');
+    }
+
+    window.closeModal = function (id) {
+        document.getElementById(id).classList.add('d-none');
+        document.getElementById('panel-order').classList.remove('d-none');
+    }
+
+    window.selectPayment = function (radio) {
+        orderState.paymentMethodId = parseInt(radio.value);
+        document.getElementById('payment-method-name').innerText = radio.getAttribute('data-name');
+        closeModal('modal-payment');
+    }
+
+    window.applyPromo = async function () {
+        let code = document.getElementById('promo-input').value;
+        let msg = document.getElementById('promo-msg');
+
+        let res = await fetch(`/Client/Dashboard/CheckPromoCode?code=${code}`);
+        let data = await res.json();
+
+        if (data.success) {
+            orderState.promoDiscount = data.discount;
+            orderState.promoCodeId = data.discountId;
+            msg.className = "small fw-bold text-success mt-2";
+            msg.innerText = `Знижка ${data.discount}% застосована!`;
+            calculateTotal();
+            setTimeout(() => closeModal('modal-promo'), 1500);
+        } else {
+            msg.className = "small fw-bold text-danger mt-2";
+            msg.innerText = data.message;
+        }
+    }
+
+    window.addNewCard = async function () {
+        let num = document.getElementById('new-card-number').value;
+        if (num.length < 16) return alert("Введіть 16 цифр картки");
+
+        let res = await fetch(`/Client/Dashboard/AddPaymentCard?cardNumber=${num}`, { method: 'POST' });
+        let data = await res.json();
+
+        if (data.success) {
+            orderState.paymentMethodId = 2;
+            document.getElementById('payment-method-name').innerText = `${data.system} ${data.mask}`;
+            closeModal('modal-payment');
+        }
     }
 
     document.getElementById('btn-options')?.addEventListener('click', () => {
@@ -170,18 +257,24 @@ document.addEventListener("DOMContentLoaded", () => {
 
     document.getElementById('btn-order')?.addEventListener('click', async () => {
         let srvs = Array.from(document.querySelectorAll('.srv-checkbox:checked')).map(cb => parseInt(cb.value));
+
         let payload = {
             Pickup: document.getElementById('pickup').value,
             Dropoff: document.getElementById('dropoff').value,
             Distance: orderState.distance,
             VehicleClassId: parseInt(orderState.classId),
             Comment: document.getElementById('order-comment').value || "",
-
             FinalPrice: parseFloat(document.getElementById('ui-total-price').innerText),
-            SelectedServices: srvs
+            SelectedServices: srvs,
+            PaymentMethodId: orderState.paymentMethodId,
+            PromoCodeId: orderState.promoCodeId
         };
 
-        let res = await fetch('/Client/Dashboard/CreateOrder', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+        let res = await fetch('/Client/Dashboard/CreateOrder', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
         let data = await res.json();
 
         if (data.success) {
@@ -189,8 +282,7 @@ document.addEventListener("DOMContentLoaded", () => {
             currentStatusId = 1;
             document.getElementById('panel-order').classList.add('d-none');
             document.getElementById('panel-searching').classList.remove('d-none');
-
-            pollInterval = setInterval(checkStatus, 3000);
+            pollInterval = setInterval(checkStatus, 1000);
         }
     });
 
@@ -210,19 +302,23 @@ document.addEventListener("DOMContentLoaded", () => {
                 document.getElementById('ui-car-brand').innerText = data.carBrand + " " + data.carModel;
                 document.getElementById('ui-car-color').innerText = data.carColor;
                 document.getElementById('ui-car-plate').innerText = data.carPlate;
-                document.getElementById('ui-status-text').innerText = "Очікуйте водія";
-                document.getElementById('ui-eta').innerText = "~";
+                document.getElementById('ui-status-text').innerText = "Водій прямує до вас";
+                document.getElementById('ui-eta').innerText = "~ хв";
 
-                let avatarContainer = document.getElementById('ui-driver-avatar-container');
-                if (data.driverAvatar) {
-                    avatarContainer.innerHTML = `<img src="${data.driverAvatar}" class="w-100 h-100" style="object-fit:cover;" />`;
-                } else {
-                    avatarContainer.innerHTML = `<i class="fa-solid fa-user-astronaut"></i>`;
+                let driverImg = document.getElementById('ui-driver-avatar');
+                if (driverImg) driverImg.src = data.driverAvatar ? data.driverAvatar : 'https://cdn-icons-png.flaticon.com/512/149/149071.png';
+
+                let carImg = document.getElementById('ui-car-photo');
+                if (carImg) carImg.src = data.carPhoto ? data.carPhoto : 'https://cdn-icons-png.flaticon.com/512/3202/3202003.png';
+
+                let callBtn = document.getElementById('btn-call-driver');
+                if (callBtn && data.driverPhone) {
+                    callBtn.href = "tel:" + data.driverPhone;
                 }
             }
             else if (data.statusId == 3 && currentStatusId !== 3) {
                 currentStatusId = 3;
-                document.getElementById('ui-status-text').innerText = "Виконується (в русі)";
+                document.getElementById('ui-status-text').innerText = "Виконується поїздка";
                 if (!isAnimationStarted) startRideSimulation();
             }
             else if ((data.statusId == 4 || data.statusId == 5) && currentStatusId !== 4) {
@@ -233,9 +329,12 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         }
     }
+    
 
     function startRideSimulation() {
         isAnimationStarted = true;
+
+        if (markerA) map.removeLayer(markerA);
 
         var carIcon = L.divIcon({
             className: 'custom-car-marker-container',
@@ -293,9 +392,12 @@ document.addEventListener("DOMContentLoaded", () => {
             }
 
             let remainingMin = Math.ceil(orderState.durationMin * (1 - progress));
-            document.getElementById('ui-eta').innerText = remainingMin > 0 ? `${remainingMin} хв` : "Прибули!";
+            let etaEl = document.getElementById('ui-eta');
+            if (etaEl) etaEl.innerText = remainingMin > 0 ? `~ ${remainingMin} хв` : "Прибули!";
 
-            if (progress < 1) requestAnimationFrame(animate);
+            if (progress < 1 && currentStatusId !== 4) {
+                requestAnimationFrame(animate);
+            }
         }
         requestAnimationFrame(animate);
     }

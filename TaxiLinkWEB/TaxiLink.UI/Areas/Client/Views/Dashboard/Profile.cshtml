@@ -4,81 +4,258 @@
     ViewData["Title"] = "Профіль";
 }
 
-<div class="profile-header mt-4 pt-4">
-    <a href="@Url.Action("Index", "Dashboard", new { area = "Client" })" class="btn-text text-decoration-none fs-5"><i class="fa-solid fa-chevron-left me-2"></i> Назад</a>
-    <h2 class="m-0 text-center w-100 fw-bold">Профіль</h2>
-</div>
+<style>
+    .profile-wrapper {
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 20px;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
 
-<div class="profile-content">
+    .glass-card {
+        background: #1e293b;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        border-radius: 16px;
+        padding: 30px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        margin-bottom: 25px;
+    }
+
+    .avatar-container {
+        position: relative;
+        width: 100px;
+        height: 100px;
+        margin: -70px auto 30px auto;
+    }
+
+    .avatar-large {
+        width: 100px;
+        height: 100px;
+        border-radius: 50%;
+        border: 4px solid #1e293b;
+        box-shadow: 0 0 20px rgba(250, 204, 21, 0.3);
+        overflow: hidden;
+        background: #334155;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2.5rem;
+        color: #facc15;
+        font-weight: bold;
+    }
+
+    .btn-edit-avatar {
+        position: absolute;
+        bottom: -5px;
+        right: -5px;
+        background: #facc15;
+        color: #0f172a;
+        width: 35px;
+        height: 35px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        border: 3px solid #1e293b;
+        transition: transform 0.2s;
+    }
+
+        .btn-edit-avatar:hover {
+            transform: scale(1.1);
+        }
+
+    .custom-input {
+        background: #0f172a;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: #f8fafc;
+        border-radius: 10px;
+        padding: 12px 15px;
+        width: 100%;
+        margin-bottom: 15px;
+    }
+
+        .custom-input:focus {
+            border-color: #facc15;
+            outline: none;
+        }
+
+    .custom-label {
+        color: #94a3b8;
+        font-size: 0.85rem;
+        font-weight: 600;
+        margin-bottom: 5px;
+        display: block;
+    }
+
+    .google-box {
+        background: rgba(15, 23, 42, 0.5);
+        border-radius: 12px;
+        padding: 15px 20px;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .switch-custom {
+        position: relative;
+        display: inline-block;
+        width: 46px;
+        height: 24px;
+    }
+
+        .switch-custom input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+    .slider-custom {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: #475569;
+        transition: .4s;
+        border-radius: 34px;
+    }
+
+        .slider-custom:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+    input:checked + .slider-custom {
+        background-color: #facc15;
+    }
+
+        input:checked + .slider-custom:before {
+            transform: translateX(22px);
+            background-color: #0f172a;
+        }
+
+    .save-btn {
+        background-color: #facc15;
+        color: #0f172a;
+        border: none;
+        border-radius: 50px;
+        padding: 14px 40px;
+        font-weight: bold;
+        font-size: 1.1rem;
+        cursor: pointer;
+        width: 100%;
+        max-width: 300px;
+        transition: opacity 0.2s;
+    }
+
+        .save-btn:hover {
+            opacity: 0.9;
+        }
+</style>
+
+<div class="profile-wrapper mt-4">
+    <h2 class="text-center fw-bold text-white mb-5">Мій Профіль</h2>
+
     <form method="post" enctype="multipart/form-data" action="@Url.Action("Profile", "Dashboard", new { area = "Client" })">
-        <div class="text-center mb-5 relative">
-            <div class="avatar-large mx-auto mb-3" style="position: relative; overflow: hidden; border: 2px solid #facc15; cursor: pointer;" id="avatarUploadBtn">
-                @if (string.IsNullOrEmpty(Model.User.AvatarPath))
+
+        <div class="glass-card mt-4">
+            <div class="avatar-container">
+                <div class="avatar-large" id="avatarUploadBtn">
+                    @if (string.IsNullOrEmpty(Model.User.AvatarPath))
+                    {
+                        <span id="avatarText">@Model.User.FirstName.Substring(0, 1).ToUpper()</span>
+                        <img id="avatarPreview" src="" style="display:none; width:100%; height:100%; object-fit:cover;" />
+                    }
+                    else
+                    {
+                        <img id="avatarPreview" src="@Model.User.AvatarPath" style="width:100%; height:100%; object-fit:cover;" />
+                    }
+                </div>
+                <div class="btn-edit-avatar" onclick="document.getElementById('avatarInput').click()">
+                    <i class="fas fa-camera"></i>
+                </div>
+                <input type="file" id="avatarInput" name="AvatarUpload" accept="image/*" style="display:none;" />
+            </div>
+
+            <div class="row">
+                <div class="col-md-6">
+                    <label class="custom-label">Ім'я</label>
+                    <input type="text" name="FirstName" class="custom-input" value="@Model.User.FirstName" required />
+                </div>
+                <div class="col-md-6">
+                    <label class="custom-label">Прізвище</label>
+                    <input type="text" name="LastName" class="custom-input" value="@Model.User.LastName" />
+                </div>
+                <div class="col-md-6">
+                    <label class="custom-label">Телефон</label>
+                    <input type="text" name="PhoneNumber" class="custom-input" value="@Model.User.PhoneNumber" required />
+                </div>
+                <div class="col-md-6">
+                    <label class="custom-label">Email</label>
+                    <input type="email" name="Email" class="custom-input" value="@Model.User.Email" />
+                </div>
+            </div>
+        </div>
+
+        <h6 class="fw-bold text-white mb-3 ms-2">Акаунти</h6>
+        <div class="glass-card p-0 mb-4 overflow-hidden">
+            <div class="google-box">
+                <div class="d-flex align-items-center">
+                    <div style="background: white; border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
+                        <i class="fa-brands fa-google" style="color: #ea4335; font-size: 1.2rem;"></i>
+                    </div>
+                    <div class="ms-3">
+                        <div class="fw-bold text-white" style="font-size: 1rem;">Google Акаунт</div>
+                        <div style="font-size: 0.85rem;" class="fw-bold @(Model.IsGoogleLinked ? "text-success" : "text-muted")">
+                            @(Model.IsGoogleLinked ? "Підключено" : "Не підключено")
+                        </div>
+                    </div>
+                </div>
+                @if (!Model.IsGoogleLinked)
                 {
-                    <span id="avatarText">@Model.User.FirstName.Substring(0, 1)</span>
-                    <img id="avatarPreview" src="" class="d-none w-100 h-100" style="object-fit: cover;" />
-                }
-                else
-                {
-                    <img id="avatarPreview" src="@Model.User.AvatarPath" class="w-100 h-100" style="object-fit: cover;" />
+                    <a href="/Auth/ExternalLogin?provider=Google" class="btn btn-outline-light btn-sm rounded-pill px-3">Підключити</a>
                 }
             </div>
-            <button type="button" class="btn-text mx-auto" onclick="document.getElementById('avatarInput').click()">Змінити фото</button>
-            <input type="file" id="avatarInput" name="AvatarUpload" accept="image/*" class="d-none" />
         </div>
 
-        <div class="form-group mb-4">
-            <label class="text-muted mb-2">Ім'я</label>
-            <input type="text" name="FirstName" class="form-control-custom py-3" value="@Model.User.FirstName" required />
-        </div>
-        <div class="form-group mb-4">
-            <label class="text-muted mb-2">Прізвище</label>
-            <input type="text" name="LastName" class="form-control-custom py-3" value="@Model.User.LastName" />
-        </div>
-        <div class="form-group mb-4">
-            <label class="text-muted mb-2">Телефон</label>
-            <input type="text" name="PhoneNumber" class="form-control-custom py-3" value="@Model.User.PhoneNumber" required />
-        </div>
-        <div class="form-group mb-5">
-            <label class="text-muted mb-2">Email</label>
-            <input type="email" name="Email" class="form-control-custom py-3" value="@Model.User.Email" />
-        </div>
-
-        <div class="section-title mt-4">Інтеграція</div>
-        <div class="google-box @(Model.IsGoogleLinked ? "linked" : "") mb-5">
-            <i class="fa-brands fa-google fs-3"></i>
-            <div class="flex-grow-1 ms-4">
-                <div class="fw-bold fs-5">Google Акаунт</div>
-                <div class="small text-muted mt-1">@(Model.IsGoogleLinked ? "Підключено" : "Не підключено")</div>
-            </div>
-            @if (!Model.IsGoogleLinked)
-            {
-                <a href="/Auth/ExternalLogin?provider=Google" class="btn-outline-yellow btn-sm py-2 px-3">Підключити</a>
-            }
-        </div>
-
-        <div class="section-title mt-4">Налаштування поїздок</div>
-        <div class="settings-box mb-5">
-            <label class="service-toggle py-4">
-                <div class="service-info">
-                    <span class="fw-bold fs-6">Тиха поїздка</span>
-                    <div class="text-muted small mt-1">Водій не буде розмовляти</div>
+        <h6 class="fw-bold text-white mb-3 ms-2">Налаштування поїздок</h6>
+        <div class="glass-card p-0 mb-5 overflow-hidden">
+            <label class="d-flex justify-content-between align-items-center p-3 border-bottom" style="border-color: rgba(255,255,255,0.05) !important; cursor: pointer; margin: 0;">
+                <div>
+                    <span class="fw-bold text-white">Тиха поїздка</span>
+                    <div class="text-muted" style="font-size: 0.8rem;">Водій не буде ініціювати розмову</div>
                 </div>
-                <input type="checkbox" name="PrefersSilentRide" value="true" @(Model.User.PrefersSilentRide ? "checked" : "")>
-                <span class="toggle-slider"></span>
+                <div class="switch-custom">
+                    <input type="checkbox" name="PrefersSilentRide" value="true" @(Model.User.PrefersSilentRide ? "checked" : "")>
+                    <span class="slider-custom"></span>
+                </div>
             </label>
-            <hr class="border-secondary my-0" />
-            <label class="service-toggle py-4">
-                <div class="service-info">
-                    <span class="fw-bold fs-6">Без музики</span>
-                    <div class="text-muted small mt-1">Вимкнути музику в авто</div>
+
+            <label class="d-flex justify-content-between align-items-center p-3" style="cursor: pointer; margin: 0;">
+                <div>
+                    <span class="fw-bold text-white">Без музики</span>
+                    <div class="text-muted" style="font-size: 0.8rem;">Вимкнути музику або радіо в авто</div>
                 </div>
-                <input type="checkbox" name="PrefersNoMusic" value="true" @(Model.User.PrefersNoMusic ? "checked" : "")>
-                <span class="toggle-slider"></span>
+                <div class="switch-custom">
+                    <input type="checkbox" name="PrefersNoMusic" value="true" @(Model.User.PrefersNoMusic ? "checked" : "")>
+                    <span class="slider-custom"></span>
+                </div>
             </label>
         </div>
 
-        <button type="submit" class="btn-primary w-100 fs-5 mt-4 mb-5">Зберегти зміни</button>
+        <div class="text-center mb-5">
+            <button type="submit" class="save-btn">Зберегти зміни</button>
+        </div>
     </form>
 </div>
 
@@ -89,9 +266,9 @@
             reader.onload = function (e) {
                 const preview = document.getElementById('avatarPreview');
                 const text = document.getElementById('avatarText');
-                if(text) text.classList.add('d-none');
+                if(text) text.style.display = 'none';
                 preview.src = e.target.result;
-                preview.classList.remove('d-none');
+                preview.style.display = 'block';
             };
             reader.readAsDataURL(this.files[0]);
         }

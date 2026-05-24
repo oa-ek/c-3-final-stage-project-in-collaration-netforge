@@ -31,15 +31,32 @@
                             {
                                 <tr>
                                     <td>#@item.Id</td>
+
                                     <td class="text-start">@item.PassengerName<br><span class="text-muted small">@item.PassengerPhone</span></td>
+
                                     <td>@(item.Driver?.User?.FirstName ?? "Пошук...")</td>
+
                                     <td class="small text-start">@item.PickupAddress<br>↓<br>@item.DropoffAddress</td>
+
                                     <td>
-                                        <span class="badge @(item.OrderStatus?.Name.Contains("Ск") == true ? "bg-danger" : item.OrderStatus?.Name.Contains("Зав") == true ? "bg-success" : "bg-warning text-dark")">
-                                            @item.OrderStatus?.Name
+                                        @{
+                                            string statusName = item.OrderStatus?.Name ?? "Очікується";
+                                            string sLower = statusName.ToLower();
+                                            string badgeClass = "bg-secondary";
+
+                                            if (sLower.Contains("очікує") || sLower.Contains("пошук")) badgeClass = "bg-warning text-dark";
+                                            else if (sLower.Contains("дорозі") || sLower.Contains("прийнят")) badgeClass = "bg-primary";
+                                            else if (sLower.Contains("виконує")) badgeClass = "bg-info text-dark";
+                                            else if (sLower.Contains("заверш")) badgeClass = "bg-success";
+                                            else if (sLower.Contains("скасован") || sLower.Contains("відмінен")) badgeClass = "bg-danger";
+                                        }
+                                        <span class="badge @badgeClass">
+                                            @statusName
                                         </span>
                                     </td>
+
                                     <td class="text-end fw-bold text-warning">@item.TotalPrice ₴</td>
+
                                     <td class="text-end">
                                         <button onclick="openOrderModal(@item.Id, true)" class="btn btn-link btn-sm text-info"><i class="fas fa-eye"></i></button>
                                         <button onclick="openOrderModal(@item.Id, false)" class="btn btn-link btn-sm text-warning"><i class="fas fa-pencil-alt"></i></button>

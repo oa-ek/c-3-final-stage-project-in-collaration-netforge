@@ -24,6 +24,9 @@ namespace TaxiLink.UI.Areas.Client.Controllers
         private readonly IVehicleRepository _vehicleRepo;
         private readonly ICurrencyService _currencyService;
         private readonly IWebHostEnvironment _webHostEnvironment;
+        private readonly IWeatherService _weatherService;
+        private readonly IGenericRepository<UserPaymentCard> _cardRepo;
+        private readonly IGenericRepository<PromoCode> _promoRepo;
 
         public DashboardController(
              IGenericRepository<Order> orderRepo,
@@ -36,7 +39,10 @@ namespace TaxiLink.UI.Areas.Client.Controllers
              IVehicleRepository vehicleRepo,
              IRoutingService routingService,
              ICurrencyService currencyService,
-             IWebHostEnvironment webHostEnvironment)
+             IWebHostEnvironment webHostEnvironment,
+             IWeatherService weatherService,
+             IGenericRepository<UserPaymentCard> cardRepo,
+             IGenericRepository<PromoCode> promoRepo)
         {
             _orderRepo = orderRepo;
             _vClassRepo = vClassRepo;
@@ -49,6 +55,9 @@ namespace TaxiLink.UI.Areas.Client.Controllers
             _routingService = routingService;
             _currencyService = currencyService;
             _webHostEnvironment = webHostEnvironment;
+            _weatherService = weatherService;
+            _cardRepo = cardRepo;
+            _promoRepo = promoRepo;
         }
 
         [HttpGet]
@@ -59,16 +68,121 @@ namespace TaxiLink.UI.Areas.Client.Controllers
             var city = await _cityRepo.GetByIdAsync(1);
             var usdRate = await _currencyService.GetRateAsync("USD") ?? 40.0m;
 
+            var weatherImpact = await _weatherService.GetWeatherImpactAsync("50.4501", "30.5234");
+
+            var allCards = await _cardRepo.GetAllAsync();
+            var allPromos = await _promoRepo.GetAllAsync();
+
             var viewModel = new ClientDashboardViewModel
             {
                 User = currentUser,
                 VehicleClasses = await _vClassRepo.GetAllAsync(),
                 AdditionalServices = await _serviceRepo.GetAllAsync(),
                 CityMultiplier = city?.PriceMultiplier ?? 1.0m,
-                UsdRate = usdRate
+                UsdRate = usdRate,
+                WeatherCondition = weatherImpact.ConditionName,
+                WeatherMultiplier = weatherImpact.TimeMultiplier,
+                PaymentCards = allCards.Where(c => c.UserId == userId).ToList(),
+                PromoCodes = allPromos.Where(p => p.ExpiryDate > DateTime.Now && p.CurrentUses < p.MaxUses).ToList()
             };
 
             return View(viewModel);
+        }
+        [HttpGet]
+        public async Task<IActionResult> GetRouteData(string startLat, string startLon, string endLat, string endLon)
+        {
+            var routeInfo = await _routingService.GetRouteInfoAsync(startLat, startLon, endLat, endLon);
+            if (routeInfo == null) return Json(new { success = false });
+            var weatherImpact = await _weatherService.GetWeatherImpactAsync(startLat.Replace(",", "."), startLon.Replace(",", "."));
+
+            return Json(new
+            {
+                success = true,
+                distance = routeInfo.Value.DistanceKm,
+                duration = routeInfo.Value.DurationMinutes,
+                coordinates = routeInfo.Value.Coordinates,
+                weatherCondition = weatherImpact.ConditionName,
+                weatherMultiplier = weatherImpact.TimeMultiplier
+            });
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> CheckPromoCode(string code)
+        {
+            var promos = await _promoRepo.GetAllAsync();
+            var promo = promos.FirstOrDefault(p => p.Code.Equals(code, StringComparison.OrdinalIgnoreCase) && p.ExpiryDate > DateTime.Now && p.CurrentUses < p.MaxUses);
+
+            if (promo != null)
+                return Json(new { success = true, discountId = promo.Id, discount = promo.DiscountPercentage });
+
+            return Json(new { success = false, message = "Промокод недійсний або його термін дії минув" });
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> AddPaymentCard(string cardNumber)
+        {
+            var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
+            string mask = "**** **** **** " + cardNumber.Substring(Math.Max(0, cardNumber.Length - 4));
+            string system = cardNumber.StartsWith("4") ? "Visa" : "MasterCard";
+
+            var newCard = new UserPaymentCard
+            {
+                UserId = userId,
+                CardMask = mask,
+                PaymentSystem = system,
+                IsDefault = true
+            };
+
+            await _cardRepo.AddAsync(newCard);
+            await _cardRepo.SaveChangesAsync();
+
+            return Json(new { success = true, id = newCard.Id, mask = newCard.CardMask, system = newCard.PaymentSystem });
+        }
+        [HttpPost]
+        public async Task<IActionResult> CreateOrder([FromBody] OrderRequestModel request)
+        {
+            var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
+
+            var order = new Order
+            {
+                UserId = userId,
+                PickupAddress = request.Pickup,
+                DropoffAddress = request.Dropoff,
+                Distance = request.Distance,
+                VehicleClassId = request.VehicleClassId,
+                ClientComment = request.Comment ?? "",
+                TotalPrice = request.FinalPrice,
+                OrderStatusId = 1,
+                PaymentMethodId = request.PaymentMethodId > 0 ? request.PaymentMethodId : 1, 
+                PromoCodeId = request.PromoCodeId,
+                CityId = 1,
+                CreatedAt = DateTime.Now
+            };
+
+            await _orderRepo.AddAsync(order);
+            await _orderRepo.SaveChangesAsync();
+
+            if (request.PromoCodeId.HasValue && request.PromoCodeId > 0)
+            {
+                var promo = await _promoRepo.GetByIdAsync(request.PromoCodeId.Value);
+                if (promo != null)
+                {
+                    promo.CurrentUses += 1;
+                    _promoRepo.Update(promo);
+                    await _promoRepo.SaveChangesAsync();
+                }
+            }
+
+            if (request.SelectedServices != null && request.SelectedServices.Any())
+            {
+                foreach (var srvId in request.SelectedServices)
+                {
+                    await _orderSrvRepo.AddAsync(new OrderAdditionalService { OrderId = order.Id, AdditionalServiceId = srvId });
+                }
+                await _orderSrvRepo.SaveChangesAsync();
+            }
+
+            return Json(new { success = true, orderId = order.Id });
         }
 
         [HttpGet]
@@ -76,6 +190,18 @@ namespace TaxiLink.UI.Areas.Client.Controllers
         {
             var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
             var currentUser = await _userRepo.GetByIdAsync(userId);
+
+            if (string.IsNullOrEmpty(currentUser.AvatarPath))
+            {
+                var googlePicture = User.FindFirst("urn:google:picture")?.Value ?? User.FindFirst("image")?.Value;
+
+                if (!string.IsNullOrEmpty(googlePicture))
+                {
+                    currentUser.AvatarPath = googlePicture;
+                    _userRepo.Update(currentUser);
+                    await _userRepo.SaveChangesAsync();
+                }
+            }
 
             var viewModel = new ClientDashboardViewModel
             {
@@ -124,50 +250,6 @@ namespace TaxiLink.UI.Areas.Client.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetRouteFromCoords(string startLat, string startLon, string endLat, string endLon)
-        {
-            var routeInfo = await _routingService.GetRouteInfoAsync(startLat, startLon, endLat, endLon);
-            if (routeInfo == null) return Json(new { success = false });
-
-            return Json(new { success = true, distance = routeInfo.Value.DistanceKm, duration = routeInfo.Value.DurationMinutes, coordinates = routeInfo.Value.Coordinates });
-        }
-
-        [HttpPost]
-        public async Task<IActionResult> CreateOrder([FromBody] OrderRequestModel request)
-        {
-            var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
-
-            var order = new Order
-            {
-                UserId = userId,
-                PickupAddress = request.Pickup,
-                DropoffAddress = request.Dropoff,
-                Distance = request.Distance,
-                VehicleClassId = request.VehicleClassId,
-                ClientComment = request.Comment ?? "",
-                TotalPrice = request.FinalPrice,
-                OrderStatusId = 1,
-                PaymentMethodId = 1,
-                CityId = 1,
-                CreatedAt = DateTime.Now
-            };
-
-            await _orderRepo.AddAsync(order);
-            await _orderRepo.SaveChangesAsync();
-
-            if (request.SelectedServices != null && request.SelectedServices.Any())
-            {
-                foreach (var srvId in request.SelectedServices)
-                {
-                    await _orderSrvRepo.AddAsync(new OrderAdditionalService { OrderId = order.Id, AdditionalServiceId = srvId });
-                }
-                await _orderSrvRepo.SaveChangesAsync();
-            }
-
-            return Json(new { success = true, orderId = order.Id });
-        }
-
-        [HttpGet]
         public async Task<IActionResult> CheckOrderStatus(int orderId)
         {
             var order = await _orderRepo.GetByIdAsync(orderId);
@@ -176,22 +258,27 @@ namespace TaxiLink.UI.Areas.Client.Controllers
             if (order.OrderStatusId > 1 && order.DriverId != null)
             {
                 var driver = await _driverRepo.GetByIdAsync(order.DriverId.Value);
-                var user = await _userRepo.GetByIdAsync(driver.UserId);
-                var vehicles = await _vehicleRepo.GetAllAsync();
-                var vehicle = vehicles.FirstOrDefault(v => v.DriverId == driver.Id);
-
-                return Json(new
+                if (driver != null)
                 {
-                    success = true,
-                    statusId = order.OrderStatusId,
-                    driverName = user?.FirstName ?? "Водій",
-                    driverRating = user?.Rating ?? 5.0m,
-                    driverAvatar = string.IsNullOrEmpty(user?.AvatarPath) ? null : user.AvatarPath,
-                    carBrand = vehicle?.Brand ?? "Автомобіль",
-                    carModel = vehicle?.Model ?? "",
-                    carColor = vehicle?.Color ?? "Не вказано",
-                    carPlate = vehicle?.LicensePlate ?? "AA0000"
-                });
+                    var user = await _userRepo.GetByIdAsync(driver.UserId);
+                    var vehicles = await _vehicleRepo.GetAllAsync();
+                    var vehicle = vehicles.FirstOrDefault(v => v.DriverId == driver.Id);
+
+                    return Json(new
+                    {
+                        success = true,
+                        statusId = order.OrderStatusId,
+                        driverName = user?.FirstName ?? "Водій",
+                        driverPhone = user?.PhoneNumber, 
+                        driverRating = Math.Round(user?.Rating ?? 5.0m, 1),
+                        driverAvatar = string.IsNullOrEmpty(user?.AvatarPath) ? null : user.AvatarPath,
+                        carBrand = vehicle?.Brand ?? "Автомобіль",
+                        carModel = vehicle?.Model ?? "",
+                        carColor = vehicle?.Color ?? "",
+                        carPlate = vehicle?.LicensePlate ?? "AA0000",
+                        carPhoto = vehicle?.Photos?.FirstOrDefault()?.PhotoPath 
+                    });
+                }
             }
 
             return Json(new { success = true, statusId = order.OrderStatusId });
@@ -221,5 +308,7 @@ namespace TaxiLink.UI.Areas.Client.Controllers
         public string Comment { get; set; }
         public decimal FinalPrice { get; set; }
         public int[] SelectedServices { get; set; }
+        public int PaymentMethodId { get; set; }
+        public int? PromoCodeId { get; set; }
     }
 }
