@@ -84,25 +84,34 @@ function loadCharts() {
             type: 'doughnut',
             data: {
                 labels: data.statuses.map(x => {
+                    const statusName = x.status || x.statusName || x.name || 'Невідомо';
                     const percent = totalStatusCount > 0 ? Math.round((x.count / totalStatusCount) * 100) : 0;
-                    return `${x.status} (${percent}%)`;
+                    return `${statusName} (${percent}%)`;
                 }),
                 datasets: [{
                     data: data.statuses.map(x => x.count),
-                    backgroundColor: ['#eab308', '#3b82f6', '#10b981', '#ef4444', '#8b5cf6'], 
+                    backgroundColor: data.statuses.map(x => {
+                        let s = (x.status || x.statusName || x.name || '').toLowerCase();
+                        if (s.includes('очікує') || s.includes('пошук')) return '#eab308'; 
+                        if (s.includes('дорозі') || s.includes('прийнят')) return '#3b82f6';
+                        if (s.includes('виконує')) return '#0dcaf0';
+                        if (s.includes('заверш')) return '#10b981'; 
+                        if (s.includes('скасован') || s.includes('відмінен')) return '#ef4444';
+                        return '#64748b'; 
+                    }),
                     borderWidth: 0
                 }]
             },
             options: {
                 responsive: true,
-                maintainAspectRatio: false, 
-                cutout: '70%', 
+                maintainAspectRatio: false,
+                cutout: '70%',
                 plugins: {
                     legend: {
-                        position: 'right', 
+                        position: 'right',
                         labels: {
                             color: '#f8fafc',
-                            boxWidth: 12, 
+                            boxWidth: 12,
                             padding: 15,
                             font: { size: 12 }
                         }

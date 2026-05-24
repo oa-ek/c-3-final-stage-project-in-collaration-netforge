@@ -5,140 +5,33 @@
 
 <div id="map"></div>
 
-<div id="panel-search" class="floating-panel bottom-center panel-large">
-    <h3 class="panel-title">Куди поїдемо, @Model.User.FirstName?</h3>
-    <div class="search-input-box mb-4">
-        <i class="fa-solid fa-magnifying-glass"></i>
-        <input type="text" id="dropoff" placeholder="Введіть адресу або клікніть на карту..." readonly />
-    </div>
-    <div class="quick-links">
-        <button class="quick-link-btn"><i class="fa-solid fa-house"></i> Додому</button>
-        <button class="quick-link-btn"><i class="fa-solid fa-briefcase"></i> Робота</button>
-    </div>
-    <input type="hidden" id="pickup" value="Визначаємо..." />
-</div>
-
-<div id="panel-order" class="floating-panel bottom-center panel-large d-none">
-    <button id="btn-back" class="btn-text mb-3"><i class="fa-solid fa-chevron-left"></i> Назад</button>
-
-    <div class="route-info mb-4">
-        <div class="route-dots">
-            <span class="dot green"></span>
-            <span class="line"></span>
-            <span class="dot red"></span>
-        </div>
-        <div class="route-texts">
-            <div id="ui-pickup-text" class="text-truncate text-muted small"></div>
-            <div id="ui-dropoff-text" class="text-truncate fw-bold"></div>
-        </div>
-    </div>
-
-    <div class="section-title">Оберіть клас</div>
-    <div class="class-carousel mb-4">
-        @foreach (var vc in Model.VehicleClasses)
-        {
-            <div class="class-card" data-id="@vc.Id" data-base="@vc.BasePrice" data-perkm="@vc.PricePerKm">
-                <i class="fa-solid fa-car-side fs-2 mb-2" style="color: @(vc.Name == "Економ" ? "#ef4444" : vc.Name == "Комфорт" ? "#3b82f6" : "#a855f7")"></i>
-                <div class="fw-bold fs-6">@vc.Name</div>
-                <div class="text-warning fw-bold mt-1">від @vc.BasePrice ₴</div>
-            </div>
-        }
-    </div>
-
-    <div class="action-buttons mb-4">
-        <div class="action-btn"><i class="fa-regular fa-credit-card me-2"></i> Картка</div>
-        <div class="action-btn"><i class="fa-solid fa-tag me-2"></i> Промокод</div>
-        <div class="action-btn" id="btn-options"><i class="fa-solid fa-sliders me-2"></i> Послуги</div>
-    </div>
-
-    <textarea id="order-comment" class="form-control-custom mb-4" rows="1" placeholder="Коментар для водія (напр. під'їзд 2)"></textarea>
-
-    <button id="btn-order" class="btn-primary w-100 fs-5">
-        Замовити <span id="ui-class-name">авто</span> • <span id="ui-total-price">0</span> ₴
-    </button>
-</div>
+<partial name="_PanelSearch" model="Model" />
+<partial name="_PanelOrder" model="Model" />
+<partial name="_PanelSearching" model="Model" />
+<partial name="_PanelActiveRide" model="Model" />
 
 <div id="panel-options" class="floating-panel center-screen panel-large d-none">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h4 class="m-0 fw-bold">Додаткові послуги</h4>
-        <button id="btn-close-options" class="icon-btn" style="width: 35px; height:35px; font-size:14px;"><i class="fa-solid fa-xmark"></i></button>
+        <h4 class="m-0 fw-bold text-white">Додаткові послуги</h4>
+        <button id="btn-close-options" class="icon-btn"><i class="fa-solid fa-xmark"></i></button>
     </div>
-    <div class="services-list mb-4">
+
+    <div class="glass-card-inner p-0 mb-4 overflow-hidden">
         @foreach (var srv in Model.AdditionalServices)
         {
-            <label class="service-toggle">
-                <div class="service-info">
-                    <span class="fw-bold">@srv.Name</span>
-                    <span class="text-warning small">+@srv.Price ₴</span>
+            <label class="d-flex justify-content-between align-items-center p-3 border-bottom service-label" style="border-color: rgba(255,255,255,0.05) !important; cursor: pointer; margin: 0;">
+                <div>
+                    <span class="fw-bold text-white">@srv.Name</span>
+                    <div class="text-warning small">+@srv.Price.ToString("0.00") ₴</div>
                 </div>
-                <input type="checkbox" class="srv-checkbox" value="@srv.Id" data-price="@srv.Price.ToString().Replace(",", ".")">
-                <span class="toggle-slider"></span>
+                <div class="switch-custom">
+                    <input type="checkbox" class="srv-checkbox" value="@srv.Id" data-price="@srv.Price.ToString().Replace(",", ".")">
+                    <span class="slider-custom"></span>
+                </div>
             </label>
         }
     </div>
-    <button id="btn-apply-options" class="btn-primary w-100">Застосувати</button>
-</div>
-
-<div id="panel-searching" class="floating-panel center-screen panel-large d-none">
-    <div class="radar-container mb-4">
-        <div class="radar-ring"></div>
-        <div class="radar-ring delay-1"></div>
-        <div class="radar-ring delay-2"></div>
-        <i class="fa-solid fa-magnifying-glass search-icon"></i>
-    </div>
-    <h3 class="text-center fw-bold mb-2">Шукаємо найкращого водія...</h3>
-    <p class="text-center text-muted small mb-4">Це займе лише кілька секунд</p>
-
-    <div class="search-route-info mb-4">
-        <div class="route-dots">
-            <span class="dot green"></span>
-            <span class="line"></span>
-            <span class="dot red"></span>
-        </div>
-        <div class="route-texts w-100">
-            <div id="search-pickup" class="text-truncate text-muted small mb-2"></div>
-            <div id="search-dropoff" class="text-truncate text-white small"></div>
-        </div>
-    </div>
-
-    <h2 class="text-center text-warning fw-bold mb-4"><span id="search-price"></span> ₴ <span class="fs-5 text-muted fw-normal">/ $<span id="search-price-usd"></span></span></h2>
-    <button class="btn-cancel w-100" id="btn-cancel-search">Скасувати замовлення</button>
-</div>
-
-<div id="panel-active-ride" class="floating-panel top-center panel-large d-none p-4">
-    <div class="d-flex align-items-center justify-content-between mb-4">
-        <h4 class="m-0 fw-bold d-flex align-items-center gap-2">
-            <i class="fa-solid fa-circle-check text-success"></i> <span id="ui-status-text">Водій прямує до вас</span>
-        </h4>
-        <div class="text-end">
-            <div class="small text-muted mb-1">Орієнтовно</div>
-            <div id="ui-eta" class="fw-bold fs-5 text-warning">~ хв</div>
-        </div>
-    </div>
-
-    <div class="driver-info-main d-flex align-items-center mb-4 p-3 rounded-4" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05);">
-        <div class="driver-avatar-large me-4" id="ui-driver-avatar-container"></div>
-        <div class="flex-grow-1">
-            <h3 id="ui-driver-name" class="m-0 fw-bold fs-4"></h3>
-            <div class="text-warning mt-1"><i class="fa-solid fa-star"></i> <span id="ui-driver-rating"></span></div>
-        </div>
-    </div>
-
-    <div class="car-info-grid mb-4">
-        <div class="text-muted">Автомобіль</div>
-        <div id="ui-car-brand" class="text-end fw-bold text-white"></div>
-        <div class="text-muted">Колір</div>
-        <div id="ui-car-color" class="text-end fw-bold text-white"></div>
-    </div>
-
-    <div class="text-center mb-4">
-        <span id="ui-car-plate" class="car-plate-large"></span>
-    </div>
-
-    <div class="d-flex gap-3">
-        <button class="btn-action-outline green flex-fill py-3"><i class="fa-solid fa-phone me-2"></i> Подзвонити</button>
-        <button class="btn-action-outline blue flex-fill py-3"><i class="fa-regular fa-comment me-2"></i> Написати</button>
-    </div>
+    <button id="btn-apply-options" class="btn-primary-glow w-100">Застосувати</button>
 </div>
 
 <div id="panel-review" class="floating-panel center-screen panel-large d-none">
@@ -163,3 +56,82 @@
 
 <input type="hidden" id="cityMultiplier" value="@Model.CityMultiplier.ToString().Replace(",", ".")" />
 <input type="hidden" id="usdRate" value="@Model.UsdRate.ToString().Replace(",", ".")" />
+<div id="panel-options" class="floating-panel center-screen panel-large d-none" style="z-index: 9999;">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h4 class="m-0 fw-bold text-white">Додаткові послуги</h4>
+        <button id="btn-close-options" class="icon-btn"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="glass-card-inner p-0 mb-4 overflow-hidden">
+        @foreach (var srv in Model.AdditionalServices)
+        {
+            <label class="d-flex justify-content-between align-items-center p-4 border-bottom service-label" style="border-color: rgba(255,255,255,0.05) !important; cursor: pointer; margin: 0;">
+                <div>
+                    <span class="fw-bold text-white fs-6">@srv.Name</span>
+                    <div class="text-warning small mt-1">+@srv.Price.ToString("0.00") ₴</div>
+                </div>
+                <div class="switch-custom">
+                    <input type="checkbox" class="srv-checkbox" value="@srv.Id" data-price="@srv.Price.ToString().Replace(",", ".")">
+                    <span class="slider-custom"></span>
+                </div>
+            </label>
+        }
+    </div>
+    <button id="btn-apply-options" class="btn-primary-glow w-100">Застосувати</button>
+</div>
+
+<div id="modal-promo" class="floating-panel center-screen panel-large d-none" style="z-index: 9999;">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h4 class="m-0 fw-bold text-white">Ввести промокод</h4>
+        <button onclick="closeModal('modal-promo')" class="icon-btn"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="glass-card-inner mb-4">
+        <input type="text" id="promo-input" class="custom-input mb-2" placeholder="НАПРИКЛАД: TAXI2026" style="text-transform: uppercase;">
+        <div id="promo-msg" class="small fw-bold"></div>
+    </div>
+    <button onclick="applyPromo()" class="btn-primary-glow w-100">Застосувати знижку</button>
+</div>
+
+<div id="modal-payment" class="floating-panel center-screen panel-large d-none" style="z-index: 9999;">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h4 class="m-0 fw-bold text-white">Спосіб оплати</h4>
+        <button onclick="closeModal('modal-payment')" class="icon-btn"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+
+    <div class="glass-card-inner mb-4 p-0 overflow-hidden">
+        <label class="d-flex align-items-center p-4 border-bottom service-label" style="border-color: rgba(255,255,255,0.05) !important; cursor: pointer; margin: 0;">
+            <div class="radio-custom me-3">
+                <input type="radio" name="payment_method" value="1" data-name="Готівка" checked onchange="selectPayment(this)">
+                <span class="radio-mark"></span>
+            </div>
+            <div>
+                <span class="fw-bold text-white"><i class="fa-solid fa-money-bill-wave text-success me-2"></i> Готівка</span>
+            </div>
+        </label>
+
+        @if (Model.PaymentCards != null && Model.PaymentCards.Any())
+        {
+            foreach (var card in Model.PaymentCards)
+            {
+                <label class="d-flex align-items-center p-4 border-bottom service-label" style="border-color: rgba(255,255,255,0.05) !important; cursor: pointer; margin: 0;">
+                    <div class="radio-custom me-3">
+                        <input type="radio" name="payment_method" value="2" data-name="@card.PaymentSystem @card.CardMask" onchange="selectPayment(this)">
+                        <span class="radio-mark"></span>
+                    </div>
+                    <div>
+                        <span class="fw-bold text-white"><i class="fa-brands fa-cc-@(card.PaymentSystem.ToLower() == "visa" ? "visa" : "mastercard") text-info me-2 fs-5"></i> @card.CardMask</span>
+                    </div>
+                </label>
+            }
+        }
+    </div>
+
+    <h6 class="text-muted mb-3 fw-bold text-uppercase" style="font-size: 0.8rem; letter-spacing: 1px;">Додати нову картку</h6>
+    <div class="glass-card-inner mb-4">
+        <input type="text" id="new-card-number" class="custom-input mb-3" placeholder="Номер картки (16 цифр)" maxlength="16">
+        <div class="d-flex gap-3">
+            <input type="text" class="custom-input" placeholder="ММ/РР" maxlength="5">
+            <input type="text" class="custom-input" placeholder="CVV" maxlength="3">
+        </div>
+    </div>
+    <button onclick="addNewCard()" class="btn-action-outline blue w-100 py-3">Прив'язати картку</button>
+</div>

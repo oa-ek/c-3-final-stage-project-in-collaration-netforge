@@ -1,0 +1,52 @@
+﻿<div id="panel-order" class="floating-panel bottom-center panel-large d-none">
+    <button id="btn-back" class="btn-text mb-3"><i class="fa-solid fa-chevron-left"></i> Назад</button>
+
+    <div class="glass-card-inner mb-4">
+        <div class="d-flex justify-content-between align-items-center mb-3 pb-3 border-bottom" style="border-color: rgba(255,255,255,0.05) !important;">
+            <div id="ui-distance-display" class="badge-custom"><i class="fa-solid fa-route text-warning me-1"></i> <span id="ui-distance-val">0</span> км</div>
+            <div id="ui-weather-display" class="badge-custom"><i class="fa-solid fa-cloud-sun text-info me-1"></i> Завантаження...</div>
+        </div>
+        <div class="route-info-clean">
+            <div class="route-dots">
+                <span class="dot green"></span>
+                <span class="line"></span>
+                <span class="dot red"></span>
+            </div>
+            <div class="route-texts">
+                <div id="ui-pickup-text" class="text-truncate text-muted small mb-3"></div>
+                <div id="ui-dropoff-text" class="text-truncate fw-bold text-white"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="section-title">Оберіть клас авто</div>
+    <div class="class-carousel mb-4">
+        @foreach (var vc in Model.VehicleClasses)
+        {
+            <div class="class-card" data-id="@vc.Id" data-base="@vc.BasePrice" data-perkm="@vc.PricePerKm">
+                <i class="fa-solid fa-car-side fs-2 mb-2" style="color: @(vc.Name == "Економ" ? "#10b981" : vc.Name == "Комфорт" ? "#3b82f6" : "#a855f7")"></i>
+                <div class="fw-bold fs-6 text-white">@vc.Name</div>
+                <div class="text-warning fw-bold mt-1" style="font-size: 0.9rem;">від @vc.BasePrice ₴</div>
+            </div>
+        }
+    </div>
+
+    <div class="action-buttons mb-4">
+        <div class="action-btn" id="btn-payment" onclick="openPaymentModal()">
+            <i class="fa-regular fa-credit-card me-2 text-info"></i> <span id="payment-method-name">Готівка</span>
+        </div>
+        <div class="action-btn" id="btn-promo" onclick="openPromoModal()">
+            <i class="fa-solid fa-tag me-2 text-success"></i> Промокод
+        </div>
+        <div class="action-btn" id="btn-options">
+            <i class="fa-solid fa-sliders me-2 text-warning"></i> Послуги
+        </div>
+    </div>
+
+    <textarea id="order-comment" class="custom-input mb-4" rows="2" placeholder="Коментар для водія (напр. під'їзд 2, з твариною)"></textarea>
+
+    <button id="btn-order" class="btn-primary-glow w-100 fs-5 d-flex justify-content-center align-items-center gap-2">
+        <span>Замовити <span id="ui-class-name">авто</span> • <span id="ui-total-price">0</span> ₴</span>
+        <span class="text-dark opacity-75 fs-6 fw-bold">($<span id="ui-total-price-usd">0.00</span>)</span>
+    </button>
+</div>

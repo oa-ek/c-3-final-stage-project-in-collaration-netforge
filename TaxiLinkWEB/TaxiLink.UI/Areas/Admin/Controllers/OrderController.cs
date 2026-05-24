@@ -8,6 +8,7 @@ using TaxiLink.UI.Admin_areas.Models;
 using static TaxiLink.UI.Admin_areas.Models.AdminViewModels;
 [Area("Admin")]
 [Authorize(Roles = "Admin")]
+[ApiExplorerSettings(IgnoreApi = true)]
 public class OrderController : Controller
 {
     private readonly IOrderService _orderService;
@@ -53,7 +54,6 @@ public class OrderController : Controller
 
     public async Task<IActionResult> Index()
     {
-        // ВИПРАВЛЕННЯ: Безпечно формуємо список водіїв, щоб уникнути NullReferenceException
         var driversList = await _driverService.GetAllDriversAsync();
         var safeDrivers = driversList.Select(d => new
         {
@@ -64,14 +64,14 @@ public class OrderController : Controller
         var model = new AdminViewModels.OrderPageViewModel
         {
             Orders = await _orderService.GetAllOrdersAsync(),
-            Drivers = new SelectList(safeDrivers, "Id", "DisplayName"), // Передаємо безпечний список
+            Drivers = new SelectList(safeDrivers, "Id", "DisplayName"), 
             Cities = new SelectList(await _cityRepo.GetAllAsync(), "Id", "Name"),
             VehicleClasses = new SelectList(await _vClassRepo.GetAllAsync(), "Id", "Name"),
             PaymentMethods = new SelectList(await _payRepo.GetAllAsync(), "Id", "Name"),
             Statuses = new SelectList(await _statusRepo.GetAllAsync(), "Id", "Name"),
             PromoCodes = new SelectList(await _promoRepo.GetAllAsync(), "Id", "Code"),
             CancellationReasons = new SelectList(await _cancelRepo.GetAllAsync(), "Id", "Name"),
-            AvailableServices = (await _serviceRepo.GetAllAsync()).ToList() // Гарантуємо створення списку
+            AvailableServices = (await _serviceRepo.GetAllAsync()).ToList() 
         };
         return View(model);
     }

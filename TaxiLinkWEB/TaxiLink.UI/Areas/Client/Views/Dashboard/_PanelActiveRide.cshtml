@@ -1,0 +1,39 @@
+﻿@model TaxiLink.UI.Areas.Client.Models.ClientDashboardViewModel
+
+<div id="panel-active-ride" class="floating-panel top-center panel-large d-none p-0 overflow-hidden">
+    <div class="active-ride-header">
+        <div class="status-title"><i class="fa-solid fa-location-arrow me-2"></i> <span id="ui-status-text">Очікуйте водія</span></div>
+        <div class="eta-box"><span id="ui-eta">~ хв</span></div>
+    </div>
+
+    <div class="active-ride-body">
+        <div class="driver-profile-row">
+            <div class="driver-photos">
+                <img id="ui-car-photo" src="https://cdn-icons-png.flaticon.com/512/3202/3202003.png" alt="Авто">
+                <img id="ui-driver-avatar" src="https://cdn-icons-png.flaticon.com/512/149/149071.png" alt="Водій">
+            </div>
+
+            <div class="driver-details">
+                <div class="driver-name-row">
+                    <div>
+                        <h4 id="ui-driver-name">Водій</h4>
+                        <div class="driver-rating"><i class="fa-solid fa-star"></i> <span id="ui-driver-rating">5.0</span></div>
+                    </div>
+                    <div id="ui-car-plate" class="car-plate-badge">AA0000</div>
+                </div>
+                <div class="car-desc">
+                    <span id="ui-car-brand"></span> • <span id="ui-car-color"></span>
+                </div>
+            </div>
+        </div>
+
+        <div class="active-ride-actions">
+            <a id="btn-call-driver" href="#" class="btn-action-outline green">
+                <i class="fa-solid fa-phone"></i> Подзвонити
+            </a>
+            <button class="btn-action-outline blue">
+                <i class="fa-regular fa-comment"></i> Написати
+            </button>
+        </div>
+    </div>
+</div>

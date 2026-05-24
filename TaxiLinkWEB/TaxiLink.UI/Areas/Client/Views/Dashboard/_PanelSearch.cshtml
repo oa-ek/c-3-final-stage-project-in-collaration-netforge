@@ -1,0 +1,13 @@
+﻿@model TaxiLink.UI.Areas.Client.Models.ClientDashboardViewModel
+<div id="panel-search" class="floating-panel bottom-center panel-large">
+    <h3 class="panel-title">Куди поїдемо, @Model.User.FirstName?</h3>
+    <div class="search-input-box mb-4">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <input type="text" id="dropoff" placeholder="Введіть адресу або клікніть на карту..." readonly />
+    </div>
+    <div class="quick-links">
+        <button class="quick-link-btn"><i class="fa-solid fa-house"></i> Додому</button>
+        <button class="quick-link-btn"><i class="fa-solid fa-briefcase"></i> Робота</button>
+    </div>
+    <input type="hidden" id="pickup" value="Визначаємо..." />
+</div>
