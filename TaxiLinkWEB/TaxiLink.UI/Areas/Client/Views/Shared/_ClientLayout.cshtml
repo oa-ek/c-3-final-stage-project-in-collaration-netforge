@@ -9,11 +9,44 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="~/css/client-style.css" />
+
+    <style>
+        .sidebar-profile-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover !important;
+            object-position: center !important;
+        }
+
+        .avatar-circle-wrapper {
+            width: 65px;
+            height: 65px;
+            border-radius: 50%;
+            padding: 3px; 
+            border: 2px solid var(--accent); 
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .avatar-inner {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            overflow: hidden;
+            background-color: var(--accent);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+    </style>
 </head>
 <body>
     <div class="top-nav-glass">
         <button id="menu-toggle" class="icon-btn"><i class="fa-solid fa-bars"></i></button>
         <div class="brand-badge">TaxiLink</div>
+
         <a href="@Url.Action("Profile", "Dashboard", new { area = "Client" })" class="icon-btn avatar-btn text-decoration-none p-0">
             @if (string.IsNullOrEmpty(Model.User.AvatarPath))
             {
@@ -21,7 +54,7 @@
             }
             else
             {
-                <img src="@Model.User.AvatarPath" class="w-100 h-100" style="object-fit: cover;" />
+                <img src="@Model.User.AvatarPath" class="sidebar-profile-img" alt="Профіль" />
             }
         </a>
     </div>
@@ -34,37 +67,53 @@
             <button id="menu-close" class="icon-btn"><i class="fa-solid fa-xmark"></i></button>
         </div>
 
-        <div class="user-profile-brief mb-4 d-flex align-items-center gap-3">
-            <div class="avatar-circle bg-warning text-dark d-flex justify-content-center align-items-center fw-bold fs-4" style="width: 50px; height: 50px; border-radius: 50%; overflow: hidden;">
-                @if (string.IsNullOrEmpty(Model.User.AvatarPath))
-                {
-                    <span>@Model.User.FirstName.Substring(0, 1)</span>
-                }
-                else
-                {
-                    <img src="@Model.User.AvatarPath" class="w-100 h-100" style="object-fit: cover;" />
-                }
+        <div class="user-profile-brief mb-4 d-flex flex-column align-items-start" style="padding-left: 15px;">
+            <div class="avatar-circle-wrapper mb-2">
+                <div class="avatar-inner fw-bold fs-4 text-dark">
+                    @if (string.IsNullOrEmpty(Model.User.AvatarPath))
+                    {
+                        <span>@Model.User.FirstName.Substring(0, 1)</span>
+                    }
+                    else
+                    {
+                        <img src="@Model.User.AvatarPath" class="sidebar-profile-img" alt="Профіль" />
+                    }
+                </div>
             </div>
-            <div>
-                <div class="fw-bold fs-5 text-white">@Model.User.FirstName</div>
-                <div class="text-warning small">★ @Model.User.Rating.ToString("F1")</div>
+            <div class="fw-bold text-white" style="font-size: 17px; line-height: 1.2;">@Model.User.FirstName</div>
+            <div class="text-white mt-1" style="font-size: 14px;">
+                <i class="fa-solid fa-star" style="font-size: 12px; margin-right: 2px;"></i> @Model.User.Rating.ToString("F1")
             </div>
         </div>
 
         <nav class="sidebar-nav">
             <a href="@Url.Action("Index", "Dashboard", new { area = "Client" })" class="nav-item @(ViewContext.RouteData.Values["Action"].ToString() == "Index" ? "active" : "")">
-                <i class="fa-solid fa-map"></i> Карта
+                <i class="fa-solid fa-map" style="width: 25px;"></i> Карта
             </a>
             <a href="@Url.Action("Profile", "Dashboard", new { area = "Client" })" class="nav-item @(ViewContext.RouteData.Values["Action"].ToString() == "Profile" ? "active" : "")">
-                <i class="fa-solid fa-user"></i> Профіль
+                <i class="fa-solid fa-user" style="width: 25px;"></i> Профіль
             </a>
-            <div class="nav-item disabled"><i class="fa-solid fa-clock-rotate-left"></i> Мої поїздки</div>
-            <div class="nav-item disabled"><i class="fa-solid fa-credit-card"></i> Способи оплати</div>
-            <div class="nav-item disabled"><i class="fa-regular fa-circle-question"></i> Підтримка</div>
-            <div class="nav-item disabled"><i class="fa-solid fa-circle-info"></i> Про додаток</div>
+            <a href="@Url.Action("PaymentMethods", "Dashboard", new { area = "Client" })" class="nav-item @(ViewContext.RouteData.Values["Action"].ToString() == "PaymentMethods" ? "active" : "")">
+                <i class="fa-solid fa-credit-card" style="width: 25px;"></i> Способи оплати
+            </a>
+            <a href="@Url.Action("SavedAddresses", "Dashboard", new { area = "Client" })" class="nav-item @(ViewContext.RouteData.Values["Action"].ToString() == "SavedAddresses" ? "active" : "")">
+                <i class="fa-solid fa-bookmark" style="width: 25px;"></i> Збережені адреси
+            </a>
+            <a href="@Url.Action("Orders", "Dashboard", new { area = "Client" })" class="nav-item @(ViewContext.RouteData.Values["Action"].ToString() == "Orders" ? "active" : "")">
+                <i class="fa-solid fa-clock-rotate-left" style="width: 25px;"></i> Мої поїздки
+            </a>
+            <a href="@Url.Action("News", "Dashboard", new { area = "Client" })" class="nav-item @(ViewContext.RouteData.Values["Action"].ToString() == "News" ? "active" : "")">
+                <i class="fa-regular fa-newspaper" style="width: 25px;"></i> Новини
+            </a>
+            <a href="@Url.Action("Support", "Dashboard", new { area = "Client" })" class="nav-item @(ViewContext.RouteData.Values["Action"].ToString() == "Support" ? "active" : "")">
+                <i class="fa-regular fa-circle-question" style="width: 25px;"></i> Підтримка
+            </a>
+            <a href="@Url.Action("About", "Dashboard", new { area = "Client" })" class="nav-item @(ViewContext.RouteData.Values["Action"].ToString() == "About" ? "active" : "")">
+                <i class="fa-solid fa-circle-info" style="width: 25px;"></i> Про додаток
+            </a>
         </nav>
 
-        <a href="/Auth/Logout" class="nav-item text-danger mt-auto"><i class="fa-solid fa-arrow-right-from-bracket"></i> Вийти</a>
+        <a href="/Auth/Logout" class="nav-item text-danger mt-auto"><i class="fa-solid fa-arrow-right-from-bracket" style="width: 25px;"></i> Вийти</a>
     </aside>
 
     @RenderBody()

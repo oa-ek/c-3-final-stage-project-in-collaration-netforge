@@ -4,7 +4,12 @@
     <div class="glass-card-inner mb-4">
         <div class="d-flex justify-content-between align-items-center mb-3 pb-3 border-bottom" style="border-color: rgba(255,255,255,0.05) !important;">
             <div id="ui-distance-display" class="badge-custom"><i class="fa-solid fa-route text-warning me-1"></i> <span id="ui-distance-val">0</span> км</div>
-            <div id="ui-weather-display" class="badge-custom"><i class="fa-solid fa-cloud-sun text-info me-1"></i> Завантаження...</div>
+
+            <div id="ui-weather-display" class="badge-custom weather-tooltip-container">
+                <i class="fa-solid fa-cloud-sun text-info me-1" id="ui-weather-icon"></i>
+                <span class="weather-text-content" id="ui-weather-text">Завантаження...</span>
+                <span class="weather-tooltip" id="ui-weather-tooltip">Перевірка погодних умов...</span>
+            </div>
         </div>
         <div class="route-info-clean">
             <div class="route-dots">

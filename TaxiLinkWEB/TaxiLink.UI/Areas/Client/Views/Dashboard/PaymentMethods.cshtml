@@ -1,0 +1,215 @@
+﻿@model TaxiLink.UI.Areas.Client.Models.ClientDashboardViewModel
+@{
+    Layout = "_ClientLayout";
+    ViewData["Title"] = "Способи оплати";
+    var cards = ViewBag.UserCards as IEnumerable<TaxiLink.Domain.Models.UserPaymentCard>;
+}
+
+<style>
+    .payment-wrapper {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px 20px 100px 20px;
+        height: 100vh;
+        overflow-y: auto;
+    }
+
+        .payment-wrapper::-webkit-scrollbar {
+            width: 0;
+        }
+
+    .header-nav {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 30px;
+        padding-top: 10px;
+    }
+
+    .btn-back-nav {
+        color: white;
+        text-decoration: none;
+        font-size: 18px;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .taxi-badge {
+        background: rgba(255,255,255,0.05);
+        border: 1px solid rgba(255,255,255,0.1);
+        padding: 8px 20px;
+        border-radius: 12px;
+        color: var(--accent);
+        font-weight: bold;
+    }
+
+    .cash-box {
+        background: rgba(255,255,255,0.02);
+        border: 1px solid rgba(255,255,255,0.05);
+        border-radius: 16px;
+        padding: 20px;
+        margin-bottom: 30px;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        color: white;
+        font-weight: 600;
+        font-size: 16px;
+    }
+
+    .credit-card-box {
+        background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 16px;
+        padding: 25px;
+        margin-bottom: 15px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+    }
+
+    .card-info {
+        color: white;
+        font-size: 18px;
+        font-weight: 600;
+        letter-spacing: 2px;
+    }
+
+    .card-sys {
+        color: var(--text-muted);
+        font-size: 14px;
+        margin-bottom: 5px;
+    }
+
+    .btn-add-card {
+        background: rgba(250, 204, 21, 0.05);
+        border: 1px dashed var(--accent);
+        color: var(--accent);
+        width: 100%;
+        padding: 16px;
+        border-radius: 16px;
+        font-weight: bold;
+        font-size: 16px;
+        cursor: pointer;
+        transition: 0.3s;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 10px;
+    }
+
+        .btn-add-card:hover {
+            background: var(--accent);
+            color: black;
+        }
+</style>
+
+<div class="payment-wrapper">
+    <div class="header-nav">
+        <a href="@Url.Action("Index", "Dashboard", new { area = "Client" })" class="btn-back-nav">
+            <i class="fa-solid fa-chevron-left"></i> Назад
+        </a>
+        <div class="taxi-badge">Способи оплати</div>
+    </div>
+
+    <h5 class="text-white mb-3 fw-bold">Готівка</h5>
+    <div class="cash-box">
+        <i class="fa-solid fa-money-bill-wave text-success fs-3"></i>
+        <div>Оплата готівкою після поїздки</div>
+    </div>
+
+    <h5 class="text-white mb-3 mt-4 fw-bold">Збережені картки</h5>
+    @if (cards != null && cards.Any())
+    {
+        foreach (var card in cards)
+        {
+            <div class="credit-card-box">
+                <div>
+                    <div class="card-sys">
+                        <i class="fa-brands fa-cc-@(card.PaymentSystem?.ToLower() == "visa" ? "visa" : "mastercard") fs-4 me-1"></i> @card.PaymentSystem
+                    </div>
+                    <div class="card-info">@card.CardMask</div>
+                </div>
+                <i class="fa-solid fa-check-circle text-success fs-4"></i>
+            </div>
+        }
+    }
+    else
+    {
+        <div class="text-muted mb-4 small">У вас ще немає збережених карток.</div>
+    }
+
+    <div id="add-card-form" class="d-none mt-4 glass-card-inner">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h5 class="text-white m-0 fw-bold">Додати нову картку</h5>
+            <button class="icon-btn" onclick="document.getElementById('add-card-form').classList.add('d-none'); document.getElementById('btn-show-form').classList.remove('d-none');"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+
+        <input type="text" id="new-card-number-page" class="custom-input mb-3" placeholder="Номер картки (16 цифр)" maxlength="19">
+
+        <div class="d-flex gap-3 mb-4">
+            <input type="text" id="new-card-expiry-page" class="custom-input" placeholder="ММ/РР" maxlength="5">
+            <input type="password" id="new-card-cvv-page" class="custom-input" placeholder="CVV" maxlength="3">
+        </div>
+
+        <button class="btn-primary-glow w-100" id="btn-save-card-page" onclick="saveLocalCard()">
+            <i class="fa-solid fa-check me-2"></i> Зберегти картку
+        </button>
+    </div>
+
+    <button class="btn-add-card mt-3" id="btn-show-form" onclick="document.getElementById('add-card-form').classList.remove('d-none'); this.classList.add('d-none');">
+        <i class="fa-solid fa-plus"></i> Додати нову картку
+    </button>
+</div>
+
+<script>
+    document.getElementById('new-card-number-page').addEventListener('input', function (e) {
+        let val = e.target.value.replace(/\D/g, ''); 
+        let formatted = val.match(/.{1,4}/g)?.join(' ') || val; 
+        e.target.value = formatted;
+    });
+
+    document.getElementById('new-card-expiry-page').addEventListener('input', function (e) {
+        let val = e.target.value.replace(/\D/g, '');
+        if (val.length > 2) {
+            e.target.value = val.substring(0, 2) + '/' + val.substring(2, 4);
+        } else {
+            e.target.value = val;
+        }
+    });
+
+    async function saveLocalCard() {
+        let numInput = document.getElementById('new-card-number-page').value.replace(/\s/g, ''); 
+        let expInput = document.getElementById('new-card-expiry-page').value;
+        let cvvInput = document.getElementById('new-card-cvv-page').value;
+
+        if (numInput.length < 16) { alert('Введіть 16 цифр картки'); return; }
+        if (expInput.length < 5) { alert('Введіть коректний термін дії (ММ/РР)'); return; }
+        if (cvvInput.length < 3) { alert('Введіть 3 цифри CVV'); return; }
+
+        let btn = document.getElementById('btn-save-card-page');
+        let originalText = btn.innerHTML;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Збереження...';
+        btn.disabled = true;
+
+        try {
+            let res = await fetch(`/Client/Dashboard/AddPaymentCard?cardNumber=${numInput}`, { method: 'POST' });
+            let data = await res.json();
+
+            if (data.success) {
+                location.reload();
+            } else {
+                alert("Помилка збереження картки.");
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        } catch(e) {
+            alert("Помилка з'єднання з сервером");
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }
+    }
+</script>

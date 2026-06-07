@@ -1,39 +1,73 @@
 ﻿@model TaxiLink.UI.Areas.Client.Models.ClientDashboardViewModel
 
-<div id="panel-active-ride" class="floating-panel top-center panel-large d-none p-0 overflow-hidden">
-    <div class="active-ride-header">
-        <div class="status-title"><i class="fa-solid fa-location-arrow me-2"></i> <span id="ui-status-text">Очікуйте водія</span></div>
-        <div class="eta-box"><span id="ui-eta">~ хв</span></div>
+<div id="panel-active-ride" class="bottom-sheet d-none">
+    <div class="drag-handle-container" id="sheet-toggle">
+        <div class="drag-handle"></div>
     </div>
 
-    <div class="active-ride-body">
-        <div class="driver-profile-row">
-            <div class="driver-photos">
-                <img id="ui-car-photo" src="https://cdn-icons-png.flaticon.com/512/3202/3202003.png" alt="Авто">
-                <img id="ui-driver-avatar" src="https://cdn-icons-png.flaticon.com/512/149/149071.png" alt="Водій">
+    <div class="sheet-header" id="sheet-header-content">
+        <div class="driver-header" style="margin-bottom: 0;">
+            <div class="driver-avatar-circle" style="width: 55px; height: 55px;">
+                <img id="ui-driver-avatar" src="/img/default_avatar.png" alt="Водій">
+            </div>
+            <div class="driver-info ms-3">
+                <h3 id="ui-driver-name" class="m-0" style="font-size: 18px;">Водій</h3>
+                <div class="rating mt-1" style="font-size: 15px;">
+                    <i class="fa-solid fa-star text-warning"></i> <span id="ui-driver-rating">5.0</span>
+                </div>
+            </div>
+        </div>
+        <div class="text-end">
+            <div id="ui-eta" class="fw-bold fs-4" style="color: var(--accent);">~ хв</div>
+        </div>
+    </div>
+
+    <div class="sheet-content">
+        <p class="text-center text-muted small mb-4 fw-bold text-uppercase" id="ui-status-text" style="letter-spacing: 1px;">Водій прямує до вас</p>
+
+        <div class="inner-dark-box mb-3">
+            <div class="car-photo-wrapper">
+                <img id="ui-car-photo" src="/img/default_car.png" alt="Фото авто">
             </div>
 
-            <div class="driver-details">
-                <div class="driver-name-row">
-                    <div>
-                        <h4 id="ui-driver-name">Водій</h4>
-                        <div class="driver-rating"><i class="fa-solid fa-star"></i> <span id="ui-driver-rating">5.0</span></div>
-                    </div>
-                    <div id="ui-car-plate" class="car-plate-badge">AA0000</div>
+            <div class="car-details-grid">
+                <span class="lbl">Автомобіль</span>
+                <span class="val"><span id="ui-car-brand">Марка</span> <span id="ui-car-model">Модель</span></span>
+
+                <span class="lbl">Колір</span>
+                <span class="val" id="ui-car-color">Колір</span>
+            </div>
+
+            <div class="license-plate-wrapper">
+                <div class="license-plate" id="ui-car-plate">АА 0000 АА</div>
+            </div>
+        </div>
+
+        <div class="inner-dark-box mb-4 p-3">
+            <div class="d-flex justify-content-between align-items-center mb-3 border-bottom border-secondary pb-3" style="border-color: rgba(255,255,255,0.05) !important;">
+                <span class="text-white-50 fw-bold text-uppercase" style="letter-spacing: 1px; font-size: 11px;">Вартість поїздки</span>
+                <span class="fw-bold fs-3 text-warning" id="ui-active-price">0 ₴</span>
+            </div>
+            <div class="route-info position-relative">
+                <div style="position: absolute; left: 7px; top: 15px; bottom: 15px; width: 2px; background: rgba(255,255,255,0.1);"></div>
+                <div class="d-flex align-items-center mb-3 position-relative">
+                    <div style="width: 16px; height: 16px; border-radius: 50%; background-color: #10b981; border: 3px solid #1e293b; margin-right: 15px; z-index: 2;"></div>
+                    <div class="text-white fw-bold text-truncate" id="ui-active-pickup" style="font-size: 14px;">Завантаження...</div>
                 </div>
-                <div class="car-desc">
-                    <span id="ui-car-brand"></span> • <span id="ui-car-color"></span>
+                <div class="d-flex align-items-center position-relative">
+                    <div style="width: 16px; height: 16px; border-radius: 50%; background-color: #ef4444; border: 3px solid #1e293b; margin-right: 15px; z-index: 2;"></div>
+                    <div class="text-white fw-bold text-truncate" id="ui-active-dropoff" style="font-size: 14px;">Завантаження...</div>
                 </div>
             </div>
         </div>
 
-        <div class="active-ride-actions">
-            <a id="btn-call-driver" href="#" class="btn-action-outline green">
+        <div class="action-buttons-grid">
+            <a href="#" id="btn-call-driver" class="action-btn-dark call">
                 <i class="fa-solid fa-phone"></i> Подзвонити
             </a>
-            <button class="btn-action-outline blue">
+            <a href="#" class="action-btn-dark msg">
                 <i class="fa-regular fa-comment"></i> Написати
-            </button>
+            </a>
         </div>
     </div>
 </div>

@@ -60,6 +60,9 @@
                                     <td class="text-end">
                                         <button onclick="openOrderModal(@item.Id, true)" class="btn btn-link btn-sm text-info"><i class="fas fa-eye"></i></button>
                                         <button onclick="openOrderModal(@item.Id, false)" class="btn btn-link btn-sm text-warning"><i class="fas fa-pencil-alt"></i></button>
+                                        <form asp-action="Delete" asp-route-id="@item.Id" method="post" class="d-inline" onsubmit="return confirm('Ви дійсно хочете видалити це замовлення?');">
+                                            <button type="submit" class="btn btn-link btn-sm text-danger p-1"><i class="fas fa-trash"></i></button>
+                                        </form>
                                     </td>
                                 </tr>
                             }

@@ -21,5 +21,7 @@ namespace TaxiLink.Domain.Models
         [MaxLength(50)]
         public string PaymentSystem { get; set; }
         public bool IsDefault { get; set; } = false;
+        [MaxLength(255)]
+        public string? Token { get; set; }
     }
 }

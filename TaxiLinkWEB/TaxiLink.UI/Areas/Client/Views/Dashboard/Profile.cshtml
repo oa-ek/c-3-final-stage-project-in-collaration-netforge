@@ -8,10 +8,15 @@
     .profile-wrapper {
         max-width: 600px;
         margin: 0 auto;
-        padding: 20px;
+        padding: 20px 20px 100px 20px; 
         font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        height: 100vh;
+        overflow-y: auto; 
     }
 
+        .profile-wrapper::-webkit-scrollbar {
+            width: 0;
+        }
     .glass-card {
         background: #1e293b;
         border: 1px solid rgba(255, 255, 255, 0.05);

@@ -1,13 +1,30 @@
 ﻿@model TaxiLink.UI.Areas.Client.Models.ClientDashboardViewModel
+
 <div id="panel-search" class="floating-panel bottom-center panel-large">
     <h3 class="panel-title">Куди поїдемо, @Model.User.FirstName?</h3>
+
+    <div class="search-input-box mb-2">
+        <i class="fa-solid fa-location-dot text-success"></i>
+        <input type="text" id="pickup" placeholder="Звідки (введіть адресу або клік на карту)..." />
+    </div>
+
     <div class="search-input-box mb-4">
-        <i class="fa-solid fa-magnifying-glass"></i>
-        <input type="text" id="dropoff" placeholder="Введіть адресу або клікніть на карту..." readonly />
+        <i class="fa-solid fa-magnifying-glass text-danger"></i>
+        <input type="text" id="dropoff" placeholder="Куди (введіть адресу або клік на карту)..." />
     </div>
-    <div class="quick-links">
-        <button class="quick-link-btn"><i class="fa-solid fa-house"></i> Додому</button>
-        <button class="quick-link-btn"><i class="fa-solid fa-briefcase"></i> Робота</button>
+
+    <div class="quick-links" style="overflow-x: auto; white-space: nowrap; padding-bottom: 5px;">
+        @if (Model.SavedAddresses != null && Model.SavedAddresses.Any())
+        {
+            foreach (var addr in Model.SavedAddresses)
+            {
+                <button class="quick-link-btn" onclick="applySavedAddress('@addr.AddressText')">
+                    <i class="fa-solid fa-star text-warning"></i> @addr.Title
+                </button>
+            }
+        }
+        <a href="@Url.Action("SavedAddresses", "Dashboard", new { area = "Client" })" class="quick-link-btn" style="text-decoration: none; background: rgba(255,255,255,0.08);">
+            <i class="fa-solid fa-plus"></i> Додати
+        </a>
     </div>
-    <input type="hidden" id="pickup" value="Визначаємо..." />
 </div>

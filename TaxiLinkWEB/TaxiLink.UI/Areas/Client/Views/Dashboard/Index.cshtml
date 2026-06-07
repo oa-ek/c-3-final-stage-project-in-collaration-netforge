@@ -5,57 +5,46 @@
 
 <div id="map"></div>
 
+<div style="position: absolute; top: 20px; left: 70px; z-index: 1000;">
+    <button onclick="document.getElementById('modal-city').classList.remove('d-none');" style="background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(255,255,255,0.1); color: white; padding: 10px 20px; border-radius: 50px; backdrop-filter: blur(10px); font-weight: bold; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">
+        <i class="fa-solid fa-location-dot text-warning me-2"></i> <span id="ui-current-city">@(Model.CurrentCity?.Name ?? "Київ")</span>
+    </button>
+</div>
+
+<input type="hidden" id="currentCityName" value="@(Model.CurrentCity?.Name ?? "Київ")" />
+<input type="hidden" id="cityMultiplier" value="@Model.CityMultiplier.ToString().Replace(",", ".")" />
+<input type="hidden" id="usdRate" value="@Model.UsdRate.ToString().Replace(",", ".")" />
+
 <partial name="_PanelSearch" model="Model" />
 <partial name="_PanelOrder" model="Model" />
 <partial name="_PanelSearching" model="Model" />
 <partial name="_PanelActiveRide" model="Model" />
 
-<div id="panel-options" class="floating-panel center-screen panel-large d-none">
+<div id="modal-city" class="floating-panel center-screen panel-large d-none" style="z-index: 9999;">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h4 class="m-0 fw-bold text-white">Додаткові послуги</h4>
-        <button id="btn-close-options" class="icon-btn"><i class="fa-solid fa-xmark"></i></button>
+        <h4 class="m-0 fw-bold text-white">Оберіть місто</h4>
+        <button onclick="document.getElementById('modal-city').classList.add('d-none')" class="icon-btn"><i class="fa-solid fa-xmark"></i></button>
     </div>
 
-    <div class="glass-card-inner p-0 mb-4 overflow-hidden">
-        @foreach (var srv in Model.AdditionalServices)
+    <div class="glass-card-inner mb-4 p-0 overflow-hidden">
+        @if (Model.AvailableCities != null)
         {
-            <label class="d-flex justify-content-between align-items-center p-3 border-bottom service-label" style="border-color: rgba(255,255,255,0.05) !important; cursor: pointer; margin: 0;">
-                <div>
-                    <span class="fw-bold text-white">@srv.Name</span>
-                    <div class="text-warning small">+@srv.Price.ToString("0.00") ₴</div>
-                </div>
-                <div class="switch-custom">
-                    <input type="checkbox" class="srv-checkbox" value="@srv.Id" data-price="@srv.Price.ToString().Replace(",", ".")">
-                    <span class="slider-custom"></span>
-                </div>
-            </label>
+            foreach (var city in Model.AvailableCities)
+            {
+                <label class="d-flex align-items-center p-4 border-bottom service-label" style="border-color: rgba(255,255,255,0.05) !important; cursor: pointer; margin: 0;" onclick="changeCity(@city.Id, '@city.Name', @city.PriceMultiplier.ToString().Replace(",", "."))">
+                    <div class="radio-custom me-3">
+                        <input type="radio" name="city_selection" value="@city.Id" @(Model.CurrentCity?.Id == city.Id ? "checked" : "")>
+                        <span class="radio-mark"></span>
+                    </div>
+                    <div>
+                        <span class="fw-bold text-white fs-5">@city.Name</span>
+                    </div>
+                </label>
+            }
         }
     </div>
-    <button id="btn-apply-options" class="btn-primary-glow w-100">Застосувати</button>
 </div>
 
-<div id="panel-review" class="floating-panel center-screen panel-large d-none">
-    <div class="text-center mb-4">
-        <div class="success-circle"><i class="fa-solid fa-check"></i></div>
-    </div>
-    <h2 class="text-center fw-bold mb-2">Дякуємо за поїздку!</h2>
-    <p class="text-center text-warning mb-4 fs-5">Сплачено: <span id="review-price"></span> ₴</p>
-
-    <p class="text-center text-muted mb-3">Оцініть водія</p>
-    <div class="stars-container d-flex justify-content-center gap-3 mb-5">
-        <i class="fa-solid fa-star star-icon" data-val="1"></i>
-        <i class="fa-solid fa-star star-icon" data-val="2"></i>
-        <i class="fa-solid fa-star star-icon" data-val="3"></i>
-        <i class="fa-solid fa-star star-icon" data-val="4"></i>
-        <i class="fa-solid fa-star star-icon" data-val="5"></i>
-    </div>
-
-    <textarea class="form-control-custom mb-4" rows="3" placeholder="Залиште коментар для водія (необов'язково)..."></textarea>
-    <button class="btn-primary w-100 fs-5" onclick="location.reload()">Відправити відгук</button>
-</div>
-
-<input type="hidden" id="cityMultiplier" value="@Model.CityMultiplier.ToString().Replace(",", ".")" />
-<input type="hidden" id="usdRate" value="@Model.UsdRate.ToString().Replace(",", ".")" />
 <div id="panel-options" class="floating-panel center-screen panel-large d-none" style="z-index: 9999;">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h4 class="m-0 fw-bold text-white">Додаткові послуги</h4>
@@ -127,11 +116,41 @@
 
     <h6 class="text-muted mb-3 fw-bold text-uppercase" style="font-size: 0.8rem; letter-spacing: 1px;">Додати нову картку</h6>
     <div class="glass-card-inner mb-4">
-        <input type="text" id="new-card-number" class="custom-input mb-3" placeholder="Номер картки (16 цифр)" maxlength="16">
+        <input type="text" id="modal-card-number" class="custom-input mb-3" placeholder="Номер картки (16 цифр)" maxlength="19">
         <div class="d-flex gap-3">
-            <input type="text" class="custom-input" placeholder="ММ/РР" maxlength="5">
-            <input type="text" class="custom-input" placeholder="CVV" maxlength="3">
+            <input type="text" id="modal-card-expiry" class="custom-input" placeholder="ММ/РР" maxlength="5">
+            <input type="password" id="modal-card-cvv" class="custom-input" placeholder="CVV" maxlength="3">
         </div>
     </div>
-    <button onclick="addNewCard()" class="btn-action-outline blue w-100 py-3">Прив'язати картку</button>
+    <button id="btn-add-modal-card" onclick="addNewCard()" class="btn-primary-glow w-100"><i class="fa-solid fa-plus me-2"></i> Прив'язати картку</button>
+</div>
+
+<div id="panel-review" class="floating-panel center-screen d-none">
+    <div class="success-circle-outline">
+        <i class="fa-solid fa-check"></i>
+    </div>
+
+    <h2 class="text-center fw-bold mb-1">Дякуємо за поїздку!</h2>
+    <h4 class="text-center mb-4" style="color: var(--accent);">Сплачено: <span id="review-price">0</span> ₴</h4>
+
+    <p class="text-center text-muted small mb-2">Оцініть водія</p>
+
+    <div class="d-flex justify-content-center gap-2 mb-3" style="font-size: 28px; color: #facc15;" id="client-rating-stars">
+        <i class="fa-solid fa-star star-icon cursor-pointer" data-val="1"></i>
+        <i class="fa-solid fa-star star-icon cursor-pointer" data-val="2"></i>
+        <i class="fa-solid fa-star star-icon cursor-pointer" data-val="3"></i>
+        <i class="fa-solid fa-star star-icon cursor-pointer" data-val="4"></i>
+        <i class="fa-solid fa-star star-icon cursor-pointer" data-val="5"></i>
+    </div>
+
+    <div class="form-check d-flex align-items-center justify-content-center gap-2 mb-4">
+        <input class="form-check-input mt-0" type="checkbox" id="blockDriverCheck" style="width: 20px; height: 20px; cursor: pointer; background-color: #1e293b; border-color: #ef4444;">
+        <label class="form-check-label text-danger small fw-bold" for="blockDriverCheck" style="cursor: pointer; text-align: left; line-height: 1.2;">
+            Більше не їздити<br>з цим водієм
+        </label>
+    </div>
+
+    <textarea id="review-comment" class="review-textarea mb-4" placeholder="Залиште коментар для водія (необов'язково)..."></textarea>
+
+    <button class="btn-primary-glow" onclick="submitClientReview()">Відправити відгук</button>
 </div>

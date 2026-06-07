@@ -1,0 +1,288 @@
+﻿@model TaxiLink.UI.Areas.Client.Models.ClientDashboardViewModel
+@{
+    Layout = "_ClientLayout";
+    ViewData["Title"] = "Мої поїздки";
+
+    var statuses = ViewBag.OrderStatuses as IEnumerable<TaxiLink.Domain.Models.OrderStatus>;
+    var clientOrders = ViewBag.ClientOrders as IEnumerable<TaxiLink.Domain.Models.Order>;
+}
+
+<style>
+    .rides-wrapper {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px 20px 100px 20px;
+        height: 100vh;
+        overflow-y: auto;
+    }
+
+        .rides-wrapper::-webkit-scrollbar {
+            width: 0;
+        }
+
+    .ride-header-nav {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 30px;
+        padding-top: 10px;
+    }
+
+    .btn-back-nav {
+        color: white;
+        text-decoration: none;
+        font-size: 18px;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .taxi-badge {
+        background: rgba(255,255,255,0.05);
+        border: 1px solid rgba(255,255,255,0.1);
+        padding: 8px 20px;
+        border-radius: 12px;
+        color: var(--accent);
+        font-weight: bold;
+        font-size: 14px;
+    }
+
+    .ride-card {
+        background: rgba(255,255,255,0.02);
+        border: 1px solid rgba(255,255,255,0.05);
+        border-radius: 16px;
+        padding: 25px;
+        margin-bottom: 20px;
+        transition: 0.3s;
+    }
+
+        .ride-card:hover {
+            background: rgba(255,255,255,0.04);
+            border-color: rgba(255,255,255,0.1);
+        }
+
+    .ride-price {
+        color: var(--accent);
+        font-weight: 800;
+        font-size: 20px;
+    }
+
+    .route-container {
+        display: flex;
+        gap: 20px;
+        margin: 20px 0;
+    }
+
+    .route-graphics {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding-top: 5px;
+    }
+
+        .route-graphics .dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+
+            .route-graphics .dot.green {
+                background: #10b981;
+            }
+
+            .route-graphics .dot.red {
+                background: #ef4444;
+            }
+
+    .vertical-dots {
+        color: #475569;
+        font-size: 20px;
+        line-height: 0.8;
+        margin: 5px 0;
+        letter-spacing: 2px;
+    }
+
+    .route-addresses {
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+        width: 100%;
+    }
+
+    .address-text {
+        color: white;
+        font-size: 15px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .status-badge-outline {
+        padding: 6px 20px;
+        border-radius: 50px;
+        font-size: 12px;
+        font-weight: 600;
+        display: inline-block;
+    }
+
+        .status-badge-outline.success {
+            border: 1px solid #10b981;
+            color: #10b981;
+            background: rgba(16,185,129,0.05);
+        }
+
+        .status-badge-outline.danger {
+            border: 1px solid #ef4444;
+            color: #ef4444;
+            background: rgba(239,68,68,0.05);
+        }
+
+        .status-badge-outline.warning {
+            border: 1px solid #facc15;
+            color: #facc15;
+            background: rgba(250,204,21,0.05);
+        }
+
+        .status-badge-outline.info {
+            border: 1px solid #3b82f6;
+            color: #3b82f6;
+            background: rgba(59,130,246,0.05);
+        }
+
+        .status-badge-outline.pending-pay {
+            border: 1px solid #a855f7;
+            color: #a855f7;
+            background: rgba(168,85,247,0.05);
+        }
+
+    .btn-action-small {
+        padding: 6px 18px;
+        border-radius: 50px;
+        font-size: 12px;
+        font-weight: 600;
+        display: inline-block;
+        text-decoration: none;
+        margin-right: 8px;
+        transition: 0.2s;
+        cursor: pointer;
+        background: transparent;
+    }
+
+    .btn-repeat {
+        border: 1px solid var(--accent);
+        color: var(--accent);
+        background: rgba(250, 204, 21, 0.05);
+    }
+
+        .btn-repeat:hover {
+            background: var(--accent);
+            color: black;
+        }
+
+    .btn-pay {
+        border: 1px solid #3b82f6;
+        color: #3b82f6;
+        background: rgba(59,130,246,0.05);
+    }
+
+        .btn-pay:hover {
+            background: #3b82f6;
+            color: white;
+        }
+
+    .btn-cancel {
+        border: 1px solid #ef4444;
+        color: #ef4444;
+        background: rgba(239,68,68,0.05);
+    }
+
+        .btn-cancel:hover {
+            background: #ef4444;
+            color: white;
+        }
+</style>
+
+<div class="rides-wrapper">
+    <div class="ride-header-nav">
+        <a href="@Url.Action("Index", "Dashboard", new { area = "Client" })" class="btn-back-nav">
+            <i class="fa-solid fa-chevron-left"></i> Назад
+        </a>
+        <div class="taxi-badge">Мої поїздки</div>
+    </div>
+
+    @if (clientOrders != null && clientOrders.Any())
+    {
+        foreach (var order in clientOrders)
+        {
+            string statusName = statuses?.FirstOrDefault(s => s.Id == order.OrderStatusId)?.Name ?? "В обробці";
+            string statusClass = "info";
+
+            if (order.OrderStatusId == 4) { statusClass = "success"; }
+            else if (order.OrderStatusId == 5) { statusClass = "danger"; }
+            else if (order.OrderStatusId == 1) { statusClass = "warning"; }
+            else if (order.OrderStatusId == 9) { statusClass = "pending-pay"; statusName = "Очікує оплати"; }
+
+            <div class="ride-card">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div class="text-muted small">@order.CreatedAt.ToString("yyyy-MM-dd HH:mm")</div>
+                    <div class="ride-price">@Math.Round(order.TotalPrice) ₴</div>
+                </div>
+
+                <div class="route-container">
+                    <div class="route-graphics">
+                        <div class="dot green"></div>
+                        <div class="vertical-dots">⋮</div>
+                        <div class="dot red"></div>
+                    </div>
+                    <div class="route-addresses">
+                        <div class="address-text">@order.PickupAddress</div>
+                        <div class="address-text">@order.DropoffAddress</div>
+                    </div>
+                </div>
+
+                <div class="text-end mt-2">
+                    @if (order.OrderStatusId == 9)
+                    {
+                        <button onclick="resumePayment(@order.Id)" class="btn-action-small btn-pay"><i class="fa-solid fa-credit-card"></i> Оплатити</button>
+                        <button onclick="cancelDraft(@order.Id)" class="btn-action-small btn-cancel"><i class="fa-solid fa-xmark"></i> Скасувати</button>
+                    }
+                    else
+                    {
+                        <a href="@Url.Action("Index", "Dashboard", new { area = "Client", pickup = order.PickupAddress, dropoff = order.DropoffAddress })" class="btn-action-small btn-repeat">
+                            <i class="fa-solid fa-arrow-rotate-left"></i> Повторити
+                        </a>
+                    }
+                    <span class="status-badge-outline @statusClass">@statusName</span>
+                </div>
+            </div>
+        }
+    }
+    else
+    {
+        <div class="text-center text-muted mt-5 pt-5">
+            <i class="fa-solid fa-car-side fs-1 mb-3 opacity-50"></i>
+            <h5>У вас ще немає поїздок</h5>
+            <p>Зробіть своє перше замовлення!</p>
+        </div>
+    }
+</div>
+
+<script>
+    async function resumePayment(orderId) {
+        let res = await fetch(`/Client/Dashboard/PayOrder?orderId=${orderId}`, { method: 'POST' });
+        let data = await res.json();
+        if (data.success) {
+            window.location.href = data.url;
+        } else {
+            alert("Помилка генерації платежу: " + data.message);
+        }
+    }
+
+    async function cancelDraft(orderId) {
+        if(confirm("Скасувати неоплачене замовлення?")) {
+            let res = await fetch(`/Client/Dashboard/CancelOrder?orderId=${orderId}`, { method: 'POST' });
+            if (res.ok) location.reload();
+        }
+    }
+</script>

@@ -129,13 +129,21 @@
                 <h5 class="fw-bold mb-1">Поїздка завершена!</h5>
                 <p class="text-white-50 small mb-4">Оцініть пасажира @Model.PassengerName</p>
 
-                <div class="d-flex justify-content-center gap-2 mb-4 fs-2 text-warning" id="rating-stars">
+                <div class="d-flex justify-content-center gap-2 mb-3 fs-2 text-warning" id="rating-stars">
                     <i class="fa-regular fa-star cursor-pointer" data-val="1"></i>
                     <i class="fa-regular fa-star cursor-pointer" data-val="2"></i>
                     <i class="fa-regular fa-star cursor-pointer" data-val="3"></i>
                     <i class="fa-regular fa-star cursor-pointer" data-val="4"></i>
                     <i class="fa-solid fa-star cursor-pointer" data-val="5"></i>
                 </div>
+
+                <div class="form-check d-flex align-items-center justify-content-center gap-2 mb-4">
+                    <input class="form-check-input mt-0" type="checkbox" id="blockPassengerCheck" style="width: 20px; height: 20px; cursor: pointer; background-color: #334155; border-color: #ef4444;">
+                    <label class="form-check-label text-danger small fw-bold" for="blockPassengerCheck" style="cursor: pointer; text-align: left; line-height: 1.2;">
+                        Більше не отримувати замовлення<br>від цього клієнта
+                    </label>
+                </div>
+
                 <button class="btn btn-warning w-100 py-3 fw-bold text-dark" onclick="submitFinish(@Model.Id)">Надіслати та в Гаманець</button>
             </div>
         </div>

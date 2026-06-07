@@ -1,0 +1,198 @@
+﻿@model TaxiLink.UI.Areas.Client.Models.ClientDashboardViewModel
+@{
+    Layout = "_ClientLayout";
+    ViewData["Title"] = "Про додаток";
+}
+
+<style>
+    .about-wrapper {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px 20px 100px 20px;
+        height: 100vh;
+        overflow-y: auto;
+    }
+
+        .about-wrapper::-webkit-scrollbar {
+            width: 0;
+        }
+
+    .about-header-nav {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        padding-top: 10px;
+    }
+
+    .btn-back-nav {
+        color: white;
+        text-decoration: none;
+        font-size: 20px;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        transition: 0.2s;
+    }
+
+        .btn-back-nav:hover {
+            color: var(--accent);
+        }
+
+    .taxi-badge {
+        background: rgba(255,255,255,0.05);
+        border: 1px solid rgba(255,255,255,0.1);
+        padding: 8px 20px;
+        border-radius: 12px;
+        color: var(--accent);
+        font-weight: bold;
+        font-size: 14px;
+    }
+
+    .about-hero {
+        text-align: center;
+        margin-bottom: 30px;
+    }
+
+        .about-hero h1 {
+            color: var(--accent);
+            font-weight: 800;
+            font-size: 32px;
+            margin-bottom: 5px;
+        }
+
+        .about-hero span {
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+
+    .about-main-card {
+        background: rgba(255,255,255,0.02);
+        border: 1px solid rgba(255,255,255,0.05);
+        border-radius: 16px;
+        padding: 25px;
+        margin-bottom: 30px;
+        color: #e2e8f0;
+        line-height: 1.6;
+        font-size: 15px;
+    }
+
+    .accordion-item {
+        background: rgba(255,255,255,0.02);
+        border: 1px solid rgba(255,255,255,0.05);
+        border-radius: 12px;
+        margin-bottom: 12px;
+        overflow: hidden;
+    }
+
+    .accordion-header {
+        padding: 18px 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        cursor: pointer;
+        font-weight: 600;
+        color: white;
+        transition: background 0.3s;
+    }
+
+        .accordion-header:hover {
+            background: rgba(255,255,255,0.04);
+        }
+
+        .accordion-header i {
+            color: var(--accent);
+            transition: transform 0.3s ease;
+        }
+    .accordion-item.active .accordion-header i {
+        transform: rotate(180deg);
+    }
+
+    .accordion-content {
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height 0.3s ease-out;
+        padding: 0 20px;
+        color: var(--text-muted);
+        font-size: 14px;
+        line-height: 1.6;
+    }
+
+    .footer-text {
+        text-align: center;
+        color: var(--text-muted);
+        font-size: 13px;
+        margin-top: 40px;
+    }
+</style>
+
+<div class="about-wrapper">
+    <div class="about-header-nav">
+        <a href="@Url.Action("Index", "Dashboard", new { area = "Client" })" class="btn-back-nav">
+            <i class="fa-solid fa-chevron-left"></i> Про додаток
+        </a>
+        <div class="taxi-badge">TaxiLink</div>
+    </div>
+
+    <div class="about-hero">
+        <h1>TaxiLink</h1>
+        <span>Версія 1.0.0</span>
+    </div>
+
+    <div class="about-main-card">
+        <p>TaxiLink - сучасний сервіс замовлення таксі, який поєднує надійність, комфорт та інновації. Ми прагнемо зробити кожну вашу поїздку швидкою, безпечною та приємною.</p>
+        <p class="m-0">Наша місія - надати найкращий сервіс пасажирських перевезень в Україні, використовуючи передові технології та дбайливе ставлення до кожного клієнта.</p>
+    </div>
+
+    <div class="accordion-item">
+        <div class="accordion-header" onclick="toggleAccordion(this)">
+            Умови використання <i class="fa-solid fa-chevron-down"></i>
+        </div>
+        <div class="accordion-content">
+            <div class="py-3 border-top" style="border-color: rgba(255,255,255,0.05) !important;">
+                Користуючись додатком TaxiLink, ви погоджуєтеся з нашими правилами. Ви зобов'язуєтеся надавати правдиву інформацію при реєстрації, не використовувати сервіс у шахрайських цілях та поважати водіїв. TaxiLink залишає за собою право заблокувати акаунт у разі порушення цих умов.
+            </div>
+        </div>
+    </div>
+
+    <div class="accordion-item">
+        <div class="accordion-header" onclick="toggleAccordion(this)">
+            Політика конфіденційності <i class="fa-solid fa-chevron-down"></i>
+        </div>
+        <div class="accordion-content">
+            <div class="py-3 border-top" style="border-color: rgba(255,255,255,0.05) !important;">
+                Ми серйозно ставимося до ваших особистих даних. TaxiLink збирає вашу геолокацію, номер телефону та дані про платежі виключно для надання послуг таксі. Ваші дані надійно зашифровані і не передаються третім особам у рекламних цілях без вашої згоди.
+            </div>
+        </div>
+    </div>
+
+    <div class="accordion-item">
+        <div class="accordion-header" onclick="toggleAccordion(this)">
+            Ліцензійна угода <i class="fa-solid fa-chevron-down"></i>
+        </div>
+        <div class="accordion-content">
+            <div class="py-3 border-top" style="border-color: rgba(255,255,255,0.05) !important;">
+                Усі права на програмне забезпечення, дизайн та логотип TaxiLink належать розробникам. Користувачам надається обмежена, невиключна ліцензія на використання додатка на своїх особистих пристроях.
+            </div>
+        </div>
+    </div>
+
+    <div class="footer-text">
+        &copy; 2026 TaxiLink. Всі права захищені.
+    </div>
+</div>
+
+<script>
+    function toggleAccordion(element) {
+        const item = element.parentElement;
+        const content = element.nextElementSibling;
+        item.classList.toggle('active');
+
+        if (item.classList.contains('active')) {
+            content.style.maxHeight = content.scrollHeight + "px";
+        } else {
+            content.style.maxHeight = null; 
+        }
+    }
+</script>
