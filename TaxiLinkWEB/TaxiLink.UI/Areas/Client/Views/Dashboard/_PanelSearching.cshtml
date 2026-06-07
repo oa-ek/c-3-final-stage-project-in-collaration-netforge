@@ -1,24 +1,24 @@
 ﻿@model TaxiLink.UI.Areas.Client.Models.ClientDashboardViewModel
-<div id="panel-searching" class="floating-panel center-screen panel-large d-none">
-    <div class="radar-container mb-4">
-        <div class="radar-ring"></div>
-        <div class="radar-ring delay-1"></div>
-        <div class="radar-ring delay-2"></div>
-        <i class="fa-solid fa-magnifying-glass search-icon"></i>
+<div id="panel-searching" class="floating-panel center-screen d-none">
+    <div class="text-center mb-3">
+        <i class="fa-solid fa-magnifying-glass" style="font-size: 32px; color: var(--accent);"></i>
     </div>
-    <h3 class="text-center fw-bold mb-2">Шукаємо найкращого водія...</h3>
+    <h3 class="text-center fw-bold mb-1">Шукаємо найкращого водія...</h3>
     <p class="text-center text-muted small mb-4">Це займе лише кілька секунд</p>
 
-    <div class="search-route-info mb-4">
-        <div class="route-dots">
-            <span class="dot green"></span><span class="line"></span><span class="dot red"></span>
+    <div class="inner-dark-box mb-4">
+        <div class="route-dots-line">
+            <div class="dot green"></div>
+            <div class="text muted" id="search-pickup">Поточне місцезнаходження</div>
         </div>
-        <div class="route-texts w-100">
-            <div id="search-pickup" class="text-truncate text-muted small mb-2"></div>
-            <div id="search-dropoff" class="text-truncate text-white small"></div>
+        <div class="route-dots-line">
+            <div class="dot red"></div>
+            <div class="text" id="search-dropoff">Завантаження...</div>
+        </div>
+        <div class="text-center mt-4">
+            <h2 class="m-0" style="color: var(--accent); font-weight: 800;"><span id="search-price">0</span> ₴</h2>
         </div>
     </div>
 
-    <h2 class="text-center text-warning fw-bold mb-4"><span id="search-price"></span> ₴ <span class="fs-5 text-muted fw-normal">/ $<span id="search-price-usd"></span></span></h2>
-    <button class="btn-cancel w-100" id="btn-cancel-search">Скасувати замовлення</button>
+    <button class="btn-cancel-red" id="btn-cancel-search">Скасувати замовлення</button>
 </div>

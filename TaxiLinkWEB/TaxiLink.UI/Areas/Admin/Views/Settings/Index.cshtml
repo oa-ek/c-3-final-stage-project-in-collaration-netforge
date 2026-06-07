@@ -88,6 +88,9 @@
                                                 <td class="text-end">
                                                     <button onclick="openVehicleClassModal(@vc.Id, true)" class="btn btn-link btn-sm text-info"><i class="fas fa-eye"></i></button>
                                                     <button onclick="openVehicleClassModal(@vc.Id, false)" class="btn btn-link btn-sm text-warning"><i class="fas fa-pencil-alt"></i></button>
+                                                    <form asp-action="DeleteVehicleClass" asp-route-id="@vc.Id" method="post" class="d-inline" onsubmit="return confirm('Видалити цей клас авто?');">
+                                                        <button type="submit" class="btn btn-link btn-sm text-danger p-1"><i class="fas fa-trash"></i></button>
+                                                    </form>
                                                 </td>
                                             </tr>
                                         }
@@ -116,6 +119,9 @@
                                             <td><span class="badge @(s.IsPercentage ? "bg-secondary" : "bg-success")">@(s.IsPercentage ? "Відсоток" : "Фікс")</span></td>
                                             <td class="text-end">
                                                 <button onclick="openServiceModal(@s.Id, false)" class="btn btn-link btn-sm text-success"><i class="fas fa-pencil-alt"></i></button>
+                                                <form asp-action="DeleteService" asp-route-id="@s.Id" method="post" class="d-inline" onsubmit="return confirm('Видалити цю послугу?');">
+                                                    <button type="submit" class="btn btn-link btn-sm text-danger p-1"><i class="fas fa-trash"></i></button>
+                                                </form>
                                             </td>
                                         </tr>
                                     }
@@ -141,6 +147,9 @@
                                             <td class="text-start">@st.Name</td>
                                             <td class="text-end">
                                                 <button onclick="openStatusModal(@st.Id, false)" class="btn btn-link btn-sm text-success"><i class="fas fa-pencil-alt"></i></button>
+                                                <form asp-action="DeleteStatus" asp-route-id="@st.Id" method="post" class="d-inline" onsubmit="return confirm('УВАГА: Видалення статусу може вплинути на замовлення. Видалити?');">
+                                                    <button type="submit" class="btn btn-link btn-sm text-danger p-1"><i class="fas fa-trash"></i></button>
+                                                </form>
                                             </td>
                                         </tr>
                                     }
@@ -168,6 +177,9 @@
                                                 <td class="text-start">@pm.Name</td>
                                                 <td class="text-end">
                                                     <button onclick="openPaymentMethodModal(@pm.Id, false)" class="btn btn-link btn-sm text-success"><i class="fas fa-pencil-alt"></i></button>
+                                                    <form asp-action="DeletePaymentMethod" asp-route-id="@pm.Id" method="post" class="d-inline" onsubmit="return confirm('Видалити цей метод оплати?');">
+                                                        <button type="submit" class="btn btn-link btn-sm text-danger p-1"><i class="fas fa-trash"></i></button>
+                                                    </form>
                                                 </td>
                                             </tr>
                                         }

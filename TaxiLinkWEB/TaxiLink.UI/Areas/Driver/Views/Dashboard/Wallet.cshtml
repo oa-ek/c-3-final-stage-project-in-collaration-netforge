@@ -76,29 +76,17 @@
             </div>
             <div class="modal-body p-4">
                 <div class="mb-3">
-                    <label class="text-white-50 small mb-2">Сума поповнення (₴)</label>
-                    <input type="number" id="refillAmount" class="form-control bg-dark border-0 text-white py-3" placeholder="0.00" style="border-radius: 12px;">
+                    <label class="text-white-50 small mb-2">Введіть суму поповнення (₴)</label>
+                    <input type="number" id="refillAmount" class="form-control bg-dark border-0 text-white py-3 fw-bold fs-4 text-center" placeholder="0.00" style="border-radius: 12px;">
                 </div>
 
-                <div class="mb-3">
-                    <label class="text-white-50 small mb-2">Номер картки</label>
-                    <input type="text" class="form-control bg-dark border-0 text-white py-3" placeholder="0000 0000 0000 0000" style="border-radius: 12px;">
-                </div>
-
-                <div class="row">
-                    <div class="col-6">
-                        <label class="text-white-50 small mb-2">Термін дії</label>
-                        <input type="text" class="form-control bg-dark border-0 text-white py-3" placeholder="ММ/РР" style="border-radius: 12px;">
-                    </div>
-                    <div class="col-6">
-                        <label class="text-white-50 small mb-2">CVV</label>
-                        <input type="password" class="form-control bg-dark border-0 text-white py-3" placeholder="***" style="border-radius: 12px;">
-                    </div>
+                <div class="alert alert-info border-0 mt-3 mb-0" style="background: rgba(16, 185, 129, 0.1); color: #10b981; border-radius: 12px;">
+                    <i class="fa-solid fa-shield-halved me-2"></i> Оплата безпечно здійснюється через платіжний шлюз Monobank. Дані карток не зберігаються.
                 </div>
             </div>
             <div class="modal-footer border-0 p-4">
                 <button type="button" id="confirmRefillBtn" class="btn btn-warning w-100 py-3 fw-bold text-dark" style="border-radius: 12px;" onclick="processRefill()">
-                    Підтвердити оплату
+                    Перейти до безпечної оплати
                 </button>
             </div>
         </div>

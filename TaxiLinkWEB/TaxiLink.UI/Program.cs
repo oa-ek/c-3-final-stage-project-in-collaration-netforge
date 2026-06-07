@@ -14,18 +14,26 @@ using TaxiLink.Services.Implementations;
 using TaxiLink.Services.Interfaces;
 using TaxiLink.UI;
 
+
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllersWithViews()
-    .AddJsonOptions(options =>
-    {
-        options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
-    });
+builder.Services.AddControllersWithViews(options =>
+{
+    options.SuppressImplicitRequiredAttributeForNonNullableReferenceTypes = true;
+})
+.AddJsonOptions(options =>
+{
+    options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
+});
 
 builder.Services.AddDataProtection();
 builder.Services.AddMemoryCache();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.ResolveConflictingActions(apiDescriptions => apiDescriptions.First());
+});
+
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
@@ -38,8 +46,8 @@ builder.Services.AddAuthentication(options =>
 })
 .AddGoogle(options =>
 {
-    options.ClientId = builder.Configuration["Authentication:Google:ClientId"];
-    options.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"];
+    options.ClientId = builder.Configuration["Authentication:Google:ClientId"] ?? "dummy";
+    options.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"] ?? "dummy";
 })
 .AddFacebook(options =>
 {
@@ -62,7 +70,8 @@ builder.Services.AddScoped<IOrderService, OrderService>();
 builder.Services.AddScoped<ICurrencyService, CurrencyService>();
 builder.Services.AddScoped<IGeocodingService, GeocodingService>();
 builder.Services.AddScoped<IRoutingService, RoutingService>();
-builder.Services.AddScoped<IWeatherService, WeatherService>(); 
+builder.Services.AddScoped<IWeatherService, WeatherService>();
+
 builder.Services.AddHttpClient("NBU", client =>
 {
     client.BaseAddress = new Uri(builder.Configuration["ExternalApis:NBU:BaseUrl"]!);
@@ -88,12 +97,11 @@ builder.Services.AddHttpClient("OpenRouteService", client =>
 builder.Services.AddHttpClient("OpenMeteo", client =>
 {
     client.BaseAddress = new Uri(builder.Configuration["ExternalApis:OpenMeteo:BaseUrl"]!);
-    client.Timeout = TimeSpan.FromSeconds(5); 
+    client.Timeout = TimeSpan.FromSeconds(5);
 })
-.AddTransientHttpErrorPolicy(policy => policy.WaitAndRetryAsync(2, _ => TimeSpan.FromSeconds(2))); 
+.AddTransientHttpErrorPolicy(policy => policy.WaitAndRetryAsync(2, _ => TimeSpan.FromSeconds(2)));
 
 var app = builder.Build();
-
 
 if (!app.Environment.IsDevelopment())
 {

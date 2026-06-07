@@ -1,0 +1,137 @@
+﻿@model TaxiLink.UI.Areas.Client.Models.ClientDashboardViewModel
+@{
+    Layout = "_ClientLayout";
+    ViewData["Title"] = "Збережені адреси";
+    var addresses = ViewBag.SavedAddresses as IEnumerable<TaxiLink.Domain.Models.SavedAddress>;
+}
+
+<style>
+    .addresses-wrapper {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px 20px 100px 20px;
+        height: 100vh;
+        overflow-y: auto;
+    }
+
+        .addresses-wrapper::-webkit-scrollbar {
+            width: 0;
+        }
+
+    .header-nav {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 30px;
+        padding-top: 10px;
+    }
+
+    .btn-back-nav {
+        color: white;
+        text-decoration: none;
+        font-size: 18px;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .taxi-badge {
+        background: rgba(255,255,255,0.05);
+        border: 1px solid rgba(255,255,255,0.1);
+        padding: 8px 20px;
+        border-radius: 12px;
+        color: var(--accent);
+        font-weight: bold;
+    }
+
+    .add-form-card {
+        background: rgba(255,255,255,0.02);
+        border: 1px solid rgba(255,255,255,0.05);
+        border-radius: 16px;
+        padding: 25px;
+        margin-bottom: 30px;
+    }
+
+    .address-card {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: rgba(255,255,255,0.02);
+        border: 1px solid rgba(255,255,255,0.05);
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 15px;
+    }
+
+    .address-title {
+        color: var(--accent);
+        font-weight: bold;
+        font-size: 16px;
+        margin-bottom: 5px;
+    }
+
+    .address-text {
+        color: white;
+        font-size: 14px;
+    }
+
+    .btn-delete {
+        background: transparent;
+        border: 1px solid var(--danger);
+        color: var(--danger);
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: 0.2s;
+    }
+
+        .btn-delete:hover {
+            background: rgba(239,68,68,0.1);
+        }
+</style>
+
+<div class="addresses-wrapper">
+    <div class="header-nav">
+        <a href="@Url.Action("Index", "Dashboard", new { area = "Client" })" class="btn-back-nav">
+            <i class="fa-solid fa-chevron-left"></i> Збережені адреси
+        </a>
+        <div class="taxi-badge">TaxiLink</div>
+    </div>
+
+    <div class="add-form-card">
+        <h5 class="text-white mb-4 fw-bold">Додати нову адресу</h5>
+        <form method="post" action="@Url.Action("AddSavedAddress", "Dashboard", new { area = "Client" })">
+            <div class="mb-3">
+                <input type="text" name="title" class="custom-input" placeholder="Назва (напр. Дім, Тренування)" required maxlength="50" />
+            </div>
+            <div class="mb-4">
+                <input type="text" name="address" class="custom-input" placeholder="Адреса (напр. вул. Хрещатик, 1)" required maxlength="255" />
+            </div>
+            <button type="submit" class="btn-primary-glow">Зберегти адресу</button>
+        </form>
+    </div>
+
+    <h5 class="text-white mb-3 fw-bold">Мої адреси</h5>
+    @if (addresses != null && addresses.Any())
+    {
+        foreach (var addr in addresses)
+        {
+            <div class="address-card">
+                <div>
+                    <div class="address-title"><i class="fa-solid fa-location-dot me-2"></i> @addr.Title</div>
+                    <div class="address-text">@addr.AddressText</div>
+                </div>
+                <form method="post" action="@Url.Action("DeleteSavedAddress", "Dashboard", new { area = "Client" })">
+                    <input type="hidden" name="id" value="@addr.Id" />
+                    <button type="submit" class="btn-delete"><i class="fa-solid fa-trash"></i></button>
+                </form>
+            </div>
+        }
+    }
+    else
+    {
+        <div class="text-center text-muted mt-4">У вас ще немає збережених адрес.</div>
+    }
+</div>

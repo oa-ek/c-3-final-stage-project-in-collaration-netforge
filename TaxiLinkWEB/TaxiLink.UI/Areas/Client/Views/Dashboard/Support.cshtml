@@ -1,0 +1,144 @@
+﻿@model TaxiLink.UI.Areas.Client.Models.ClientDashboardViewModel
+@{
+    Layout = "_ClientLayout";
+    ViewData["Title"] = "Підтримка";
+}
+
+<style>
+    .support-wrapper {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px 20px 100px 20px;
+        height: 100vh;
+        overflow-y: auto;
+    }
+
+        .support-wrapper::-webkit-scrollbar {
+            width: 0;
+        }
+
+    .support-header-nav {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 30px;
+        padding-top: 10px;
+    }
+
+    .btn-back-nav {
+        color: white;
+        text-decoration: none;
+        font-size: 20px;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        transition: 0.2s;
+    }
+
+        .btn-back-nav:hover {
+            color: var(--accent);
+        }
+
+    .taxi-badge {
+        background: rgba(255,255,255,0.05);
+        border: 1px solid rgba(255,255,255,0.1);
+        padding: 8px 20px;
+        border-radius: 12px;
+        color: var(--accent);
+        font-weight: bold;
+        font-size: 14px;
+    }
+
+    .support-card {
+        background: rgba(255,255,255,0.02);
+        border: 1px solid rgba(255,255,255,0.05);
+        border-radius: 16px;
+        padding: 30px;
+        margin-bottom: 20px;
+    }
+
+    .support-title {
+        font-weight: 800;
+        font-size: 18px;
+        margin-bottom: 5px;
+        color: white;
+    }
+
+    .support-subtitle {
+        color: var(--text-muted);
+        font-size: 14px;
+        margin-bottom: 25px;
+    }
+
+
+    .btn-support-call {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 10px;
+        background: var(--accent);
+        color: black;
+        font-weight: 700;
+        font-size: 16px;
+        padding: 16px;
+        border-radius: 12px;
+        text-decoration: none;
+        transition: 0.3s;
+    }
+
+        .btn-support-call:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(250, 204, 21, 0.3);
+            color: black;
+        }
+
+    .btn-support-email {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 10px;
+        background: rgba(255,255,255,0.03);
+        border: 1px solid rgba(255,255,255,0.1);
+        color: white;
+        font-weight: 700;
+        font-size: 16px;
+        padding: 16px;
+        border-radius: 12px;
+        text-decoration: none;
+        transition: 0.3s;
+    }
+
+        .btn-support-email:hover {
+            transform: translateY(-3px);
+            background: rgba(255,255,255,0.08);
+            color: white;
+        }
+</style>
+
+<div class="support-wrapper">
+    <div class="support-header-nav">
+        <a href="@Url.Action("Index", "Dashboard", new { area = "Client" })" class="btn-back-nav">
+            <i class="fa-solid fa-chevron-left"></i> Підтримка
+        </a>
+        <div class="taxi-badge">TaxiLink</div>
+    </div>
+
+    <div class="support-card">
+        <div class="support-title">Гаряча лінія</div>
+        <div class="support-subtitle">Працюємо цілодобово</div>
+
+        <a href="tel:+380634222864" class="btn-support-call">
+            <i class="fa-solid fa-phone"></i> 0 800 123 456
+        </a>
+    </div>
+
+    <div class="support-card">
+        <div class="support-title">Email підтримка</div>
+        <div class="support-subtitle">Відповімо протягом 24 годин</div>
+
+        <a href="mailto:taxilinkofficial@gmail.com?subject=Звернення%20до%20підтримки%20TaxiLink" class="btn-support-email">
+            <i class="fa-solid fa-envelope"></i> taxilinkofficial@gmail.com
+        </a>
+    </div>
+</div>

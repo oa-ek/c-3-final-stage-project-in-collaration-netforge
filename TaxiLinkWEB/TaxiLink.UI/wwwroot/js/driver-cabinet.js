@@ -347,10 +347,24 @@ function submitCancel(id) {
 }
 
 function submitFinish(id) {
-    fetch(`/Driver/Dashboard/FinishOrder?orderId=${id}&rating=${selectedRating}`, { method: 'POST' })
-        .then(() => window.location.href = '/Driver/Dashboard/Wallet');
-}
+    if (animationInterval) cancelAnimationFrame(animationInterval);
 
+    const checkbox = document.getElementById('blockPassengerCheck');
+    const isBlockedValue = checkbox ? checkbox.checked : false;
+
+    fetch(`/Driver/Dashboard/FinishOrder?orderId=${id}&rating=${selectedRating}&isBlocked=${isBlockedValue}`, { method: 'POST' })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success === false && data.message) {
+                alert(data.message); 
+            } else {
+                window.location.href = '/Driver/Dashboard/Wallet';
+            }
+        })
+        .catch(err => {
+            alert("Критична помилка запиту: " + err);
+        });
+}
 function acceptOrder(id) {
     fetch('/Driver/Dashboard/AcceptOrder?orderId=' + id, { method: 'POST' })
         .then(res => res.json())
@@ -451,24 +465,23 @@ function processRefill() {
     if (!amount || amount <= 0) { alert("Будь ласка, введіть суму для поповнення."); return; }
 
     const btn = document.getElementById('confirmRefillBtn');
-    btn.disabled = true; btn.innerText = "Обробка...";
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Генерація платежу...';
 
-    fetch('/Driver/Dashboard/RefillWallet', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: 'amount=' + amount
+    fetch('/Driver/Dashboard/RefillWalletPay?amount=' + amount, {
+        method: 'POST'
     }).then(res => res.json()).then(data => {
         if (data.success) {
-            document.getElementById('current-balance-display').innerText = data.newBalance + " ₴";
-            bootstrap.Modal.getInstance(document.getElementById('refillModal')).hide();
-            alert("Оплата успішна! Баланс поповнено.");
-            location.reload();
+            window.location.href = data.url;
         } else {
-            alert("Помилка поповнення.");
-            btn.disabled = false; btn.innerText = "Підтвердити оплату";
+            alert(data.message || "Помилка генерації платежу.");
+            btn.disabled = false;
+            btn.innerText = "Перейти до безпечної оплати";
         }
     }).catch(() => {
-        btn.disabled = false; btn.innerText = "Підтвердити оплату";
+        alert("Помилка з'єднання з сервером.");
+        btn.disabled = false;
+        btn.innerText = "Перейти до безпечної оплати";
     });
 }
 

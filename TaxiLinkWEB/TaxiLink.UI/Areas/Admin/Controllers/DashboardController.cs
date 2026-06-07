@@ -111,7 +111,14 @@ namespace TaxiLink.UI.Admin_areas.Controllers
                 {
                     worksheet.Cell(row, 1).Value = order.Id;
                     worksheet.Cell(row, 2).Value = order.CreatedAt.ToString("dd.MM.yyyy HH:mm");
-                    worksheet.Cell(row, 3).Value = order.PassengerName ?? "Без імені";
+
+                    string clientName = order.PassengerName;
+                    if (string.IsNullOrWhiteSpace(clientName) && order.User != null)
+                    {
+                        clientName = $"{order.User.FirstName} {order.User.LastName}".Trim();
+                    }
+                    worksheet.Cell(row, 3).Value = !string.IsNullOrWhiteSpace(clientName) ? clientName : "Без імені";
+
                     worksheet.Cell(row, 4).Value = order.OrderStatus?.Name ?? "Нове";
                     worksheet.Cell(row, 5).Value = order.TotalPrice;
                     row++;

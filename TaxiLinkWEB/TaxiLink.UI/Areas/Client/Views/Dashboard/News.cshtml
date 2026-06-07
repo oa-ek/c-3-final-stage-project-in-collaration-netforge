@@ -1,0 +1,135 @@
+﻿@model TaxiLink.UI.Areas.Client.Models.ClientDashboardViewModel
+@{
+    Layout = "_ClientLayout";
+    ViewData["Title"] = "Новини";
+    var newsList = ViewBag.NewsList as IEnumerable<TaxiLink.Domain.Models.NewsItem>;
+}
+
+<style>
+    .news-wrapper {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px 20px 100px 20px;
+        height: 100vh;
+        overflow-y: auto;
+    }
+    .news-wrapper::-webkit-scrollbar { width: 0; }
+
+    .header-nav {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 30px;
+        padding-top: 10px;
+    }
+
+    .btn-back-nav {
+        color: white;
+        text-decoration: none;
+        font-size: 18px;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        transition: 0.2s;
+    }
+    .btn-back-nav:hover { color: var(--accent); }
+
+    .taxi-badge {
+        background: rgba(255,255,255,0.05);
+        border: 1px solid rgba(255,255,255,0.1);
+        padding: 8px 20px;
+        border-radius: 12px;
+        color: var(--accent);
+        font-weight: bold;
+        font-size: 14px;
+    }
+
+    .news-card {
+        background: rgba(255,255,255,0.02);
+        border: 1px solid rgba(255,255,255,0.05);
+        border-radius: 16px;
+        overflow: hidden;
+        margin-bottom: 25px;
+        transition: 0.3s ease;
+    }
+    .news-card:hover {
+        border-color: rgba(250, 204, 21, 0.3);
+        transform: translateY(-3px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.4);
+    }
+
+    .news-img-container {
+        width: 100%;
+        height: 200px;
+        background: #1e293b;
+    }
+    .news-img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .news-content {
+        padding: 25px;
+    }
+    .news-date {
+        color: var(--accent);
+        font-size: 13px;
+        font-weight: 700;
+        margin-bottom: 12px;
+        display: inline-block;
+        background: rgba(250, 204, 21, 0.1);
+        padding: 4px 12px;
+        border-radius: 6px;
+    }
+    .news-title {
+        color: white;
+        font-size: 18px;
+        font-weight: 800;
+        margin-bottom: 12px;
+    }
+    .news-desc {
+        color: #cbd5e1;
+        font-size: 14px;
+        line-height: 1.6;
+        margin: 0;
+    }
+</style>
+
+<div class="news-wrapper">
+    <div class="header-nav">
+        <a href="@Url.Action("Index", "Dashboard", new { area = "Client" })" class="btn-back-nav">
+            <i class="fa-solid fa-chevron-left"></i> Назад
+        </a>
+        <div class="taxi-badge">Новини TaxiLink</div>
+    </div>
+
+    @if (newsList != null && newsList.Any())
+    {
+        foreach (var item in newsList)
+        {
+            <div class="news-card">
+                @if (!string.IsNullOrEmpty(item.ImagePath))
+                {
+                    <div class="news-img-container">
+                        <img src="@item.ImagePath" class="news-img" alt="Новина">
+                    </div>
+                }
+                <div class="news-content">
+                    <span class="news-date"><i class="fa-regular fa-calendar me-1"></i> @item.PublishedAt.ToString("dd.MM.yyyy HH:mm")</span>
+                    <h4 class="news-title">@item.Title</h4>
+                    <p class="news-desc">@item.Description</p>
+                </div>
+            </div>
+        }
+    }
+    else
+    {
+        <div class="text-center text-muted mt-5 pt-5">
+            <i class="fa-regular fa-newspaper fs-1 mb-3 opacity-50"></i>
+            <h5>Новин поки немає</h5>
+            <p>Слідкуйте за оновленнями TaxiLink!</p>
+        </div>
+    }
+</div>

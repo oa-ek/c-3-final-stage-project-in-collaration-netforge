@@ -82,7 +82,8 @@ namespace TaxiLink.Domain.Models
         public DateTime CreatedAt { get; set; } = DateTime.Now;
 
         public DateTime? CompletedAt { get; set; }
-
+        [MaxLength(100)]
+        public string? ExternalPaymentId { get; set; }
         public Review Review { get; set; }
         public ICollection<OrderAdditionalService> OrderAdditionalServices { get; set; } = new List<OrderAdditionalService>();
     }

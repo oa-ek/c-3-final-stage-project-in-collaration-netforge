@@ -40,6 +40,8 @@ document.addEventListener("DOMContentLoaded", () => {
     let map = L.map('map', { zoomControl: false }).setView([50.45, 30.52], 13);
     L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
 
+    let currentCityName = document.getElementById('currentCityName')?.value || 'Київ';
+
     let markerA = null, markerB = null, routeLine = null, carMarker = null;
     let orderState = {
         distance: 0,
@@ -56,13 +58,113 @@ document.addEventListener("DOMContentLoaded", () => {
 
     let cityMultiplierElement = document.getElementById('cityMultiplier');
     let usdRateElement = document.getElementById('usdRate');
-    const multiplier = cityMultiplierElement ? parseFloat(cityMultiplierElement.value) : 1.0;
+
+    let multiplier = cityMultiplierElement ? parseFloat(cityMultiplierElement.value) : 1.0;
     const usdRate = usdRateElement ? parseFloat(usdRateElement.value) : 40.0;
 
     let currentOrderId = null;
     let currentStatusId = 1;
     let pollInterval = null;
     let isAnimationStarted = false;
+
+    async function initMapCenter() {
+        let coords = await geocodeAddress(currentCityName);
+        if (coords) map.setView(coords, 12);
+    }
+    initMapCenter();
+
+    async function checkExistingOrder() {
+        let res = await fetch('/Client/Dashboard/GetActiveOrder');
+        let data = await res.json();
+
+        if (data.success) {
+            currentOrderId = data.orderId;
+            currentStatusId = data.statusId;
+
+            document.getElementById('panel-search').classList.add('d-none');
+            document.getElementById('panel-order').classList.add('d-none');
+
+            let searchPickup = document.getElementById('search-pickup');
+            let searchDropoff = document.getElementById('search-dropoff');
+            let searchPrice = document.getElementById('search-price');
+            let activePickup = document.getElementById('ui-active-pickup');
+            let activeDropoff = document.getElementById('ui-active-dropoff');
+            let activePrice = document.getElementById('ui-active-price');
+
+            if (activePickup) activePickup.innerText = data.pickup;
+            if (activeDropoff) activeDropoff.innerText = data.dropoff;
+            if (activePrice) activePrice.innerText = data.price + " ₴";
+            if (searchPickup) searchPickup.innerText = data.pickup;
+            if (searchDropoff) searchDropoff.innerText = data.dropoff;
+            if (searchPrice) searchPrice.innerText = data.price;
+
+            let coordsA = await geocodeAddress(data.pickup);
+            if (coordsA) markerA = L.marker(coordsA, { icon: createDot('#10b981') }).addTo(map);
+
+            let coordsB = await geocodeAddress(data.dropoff);
+            if (coordsB) markerB = L.marker(coordsB, { icon: createDot('#ef4444') }).addTo(map);
+
+            if (markerA && markerB) {
+                let p1 = markerA.getLatLng(), p2 = markerB.getLatLng();
+                let routeRes = await fetch(`/Client/Dashboard/GetRouteData?startLat=${p1.lat}&startLon=${p1.lng}&endLat=${p2.lat}&endLon=${p2.lng}`);
+                let routeData = await routeRes.json();
+
+                if (routeData.success) {
+                    orderState.routeCoords = routeData.coordinates.map(c => [c[1], c[0]]);
+                    orderState.durationMin = routeData.duration || Math.ceil(routeData.distance * 2);
+                    routeLine = L.polyline(orderState.routeCoords, { color: '#facc15', weight: 4 }).addTo(map);
+                    map.fitBounds(routeLine.getBounds(), { padding: [50, 50] });
+                }
+            }
+            if (currentStatusId == 1 || currentStatusId == 9) {
+                document.getElementById('panel-searching').classList.remove('d-none');
+            } else if (currentStatusId == 2 || currentStatusId == 3) {
+                document.getElementById('panel-active-ride').classList.remove('d-none');
+            }
+
+            currentStatusId = 0;
+            pollInterval = setInterval(checkStatus, 1000);
+        } else {
+            checkUrlParams();
+        }
+    }
+
+    async function checkUrlParams() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const pickupParam = urlParams.get('pickup');
+        const dropoffParam = urlParams.get('dropoff');
+
+        if (pickupParam && dropoffParam) {
+            const pickupInput = document.getElementById('pickup');
+            const dropoffInput = document.getElementById('dropoff');
+
+            if (pickupInput && dropoffInput) {
+                pickupInput.value = pickupParam;
+                dropoffInput.value = dropoffParam;
+
+                let coordsA = await geocodeAddress(pickupParam);
+                if (coordsA) {
+                    markerA = L.marker(coordsA, { icon: createDot('#10b981') }).addTo(map);
+                }
+
+                let coordsB = await geocodeAddress(dropoffParam);
+                if (coordsB) {
+                    markerB = L.marker(coordsB, { icon: createDot('#ef4444') }).addTo(map);
+                }
+
+                if (markerA && markerB) {
+                    document.getElementById('ui-pickup-text').innerText = pickupParam;
+                    document.getElementById('ui-dropoff-text').innerText = dropoffParam;
+                    document.getElementById('search-pickup').innerText = pickupParam;
+                    document.getElementById('search-dropoff').innerText = dropoffParam;
+
+                    drawRouteAndShowPanel();
+                }
+            }
+        }
+    }
+
+    checkExistingOrder();
 
     map.on('click', async function (e) {
         if (!markerA || (markerA && markerB)) {
@@ -101,6 +203,17 @@ document.addEventListener("DOMContentLoaded", () => {
         } catch { return `${lat.toFixed(4)}, ${lng.toFixed(4)}`; }
     }
 
+    async function geocodeAddress(address) {
+        try {
+            let res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address + ', ' + currentCityName)}`);
+            let data = await res.json();
+            if (data && data.length > 0) {
+                return L.latLng(parseFloat(data[0].lat), parseFloat(data[0].lon));
+            }
+            return null;
+        } catch { return null; }
+    }
+
     async function drawRouteAndShowPanel() {
         let p1 = markerA.getLatLng(), p2 = markerB.getLatLng();
         let res = await fetch(`/Client/Dashboard/GetRouteData?startLat=${p1.lat}&startLon=${p1.lng}&endLat=${p2.lat}&endLon=${p2.lng}`);
@@ -115,8 +228,18 @@ document.addEventListener("DOMContentLoaded", () => {
             let distVal = document.getElementById('ui-distance-val');
             if (distVal) distVal.innerText = data.distance.toFixed(1);
 
-            let weatherDisplay = document.getElementById('ui-weather-display');
-            if (weatherDisplay) weatherDisplay.innerHTML = `<i class="fa-solid fa-cloud-sun text-info me-1"></i> ${data.weatherCondition}`;
+            let weatherText = document.getElementById('ui-weather-text');
+            let weatherTooltip = document.getElementById('ui-weather-tooltip');
+
+            if (weatherText && weatherTooltip) {
+                weatherText.innerText = `${data.weatherCondition} (x${data.weatherMultiplier})`;
+                if (data.weatherMultiplier > 1.0) {
+                    let percent = Math.round((data.weatherMultiplier - 1) * 100);
+                    weatherTooltip.innerText = `Через погодні умови вартість поїздки підвищено на ${percent}%. Це стимулює більше водіїв вийти на лінію.`;
+                } else {
+                    weatherTooltip.innerText = `Сприятливі умови. Націнки за погоду немає.`;
+                }
+            }
 
             routeLine = L.polyline(orderState.routeCoords, { color: '#facc15', weight: 4 }).addTo(map);
             map.fitBounds(routeLine.getBounds(), { padding: [50, 50] });
@@ -212,17 +335,79 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
+    let cardNumInput = document.getElementById('modal-card-number');
+    let cardExpInput = document.getElementById('modal-card-expiry');
+    let cardCvvInput = document.getElementById('modal-card-cvv');
+    let saveCardBtn = document.getElementById('btn-add-modal-card');
+
+    if (cardNumInput) {
+        cardNumInput.setAttribute('maxlength', '19');
+        cardNumInput.addEventListener('input', function (e) {
+            let val = e.target.value.replace(/\D/g, '');
+            let formatted = val.match(/.{1,4}/g)?.join(' ') || val;
+            e.target.value = formatted;
+        });
+    }
+
+    if (cardExpInput) {
+        cardExpInput.addEventListener('input', function (e) {
+            let val = e.target.value.replace(/\D/g, '');
+            if (val.length > 2) {
+                e.target.value = val.substring(0, 2) + '/' + val.substring(2, 4);
+            } else {
+                e.target.value = val;
+            }
+        });
+    }
+
+    if (cardCvvInput) {
+        cardCvvInput.setAttribute('type', 'password');
+        cardCvvInput.addEventListener('input', function (e) {
+            e.target.value = e.target.value.replace(/\D/g, '');
+        });
+    }
+
+    if (saveCardBtn) {
+        saveCardBtn.className = 'btn-primary-glow w-100 py-3 mt-2';
+        saveCardBtn.innerHTML = '<i class="fa-solid fa-plus me-2"></i> Прив\'язати картку';
+    }
+
     window.addNewCard = async function () {
-        let num = document.getElementById('new-card-number').value;
-        if (num.length < 16) return alert("Введіть 16 цифр картки");
+        let numInput = cardNumInput ? cardNumInput.value.replace(/\s/g, '') : '';
+        let expInput = cardExpInput ? cardExpInput.value : '';
+        let cvvInput = cardCvvInput ? cardCvvInput.value : '';
 
-        let res = await fetch(`/Client/Dashboard/AddPaymentCard?cardNumber=${num}`, { method: 'POST' });
-        let data = await res.json();
+        if (numInput.length < 16) return alert("Введіть 16 цифр картки");
+        if (expInput.length < 5) return alert("Введіть коректний термін дії (ММ/РР)");
+        if (cvvInput.length < 3) return alert("Введіть 3 цифри CVV");
 
-        if (data.success) {
-            orderState.paymentMethodId = 2;
-            document.getElementById('payment-method-name').innerText = `${data.system} ${data.mask}`;
-            closeModal('modal-payment');
+        let originalText = saveCardBtn.innerHTML;
+        saveCardBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Збереження...';
+        saveCardBtn.disabled = true;
+
+        try {
+            let res = await fetch(`/Client/Dashboard/AddPaymentCard?cardNumber=${numInput}`, { method: 'POST' });
+            let data = await res.json();
+
+            if (data.success) {
+                orderState.paymentMethodId = 2;
+                let sys = data.system || (numInput.startsWith('4') ? 'Visa' : 'MasterCard');
+                let mask = data.mask || ('**** ' + numInput.slice(-4));
+
+                document.getElementById('payment-method-name').innerText = `${sys} ${mask}`;
+                closeModal('modal-payment');
+
+                if (cardNumInput) cardNumInput.value = '';
+                if (cardExpInput) cardExpInput.value = '';
+                if (cardCvvInput) cardCvvInput.value = '';
+            } else {
+                alert("Помилка збереження картки.");
+            }
+        } catch (e) {
+            alert("Помилка з'єднання з сервером.");
+        } finally {
+            saveCardBtn.innerHTML = originalText;
+            saveCardBtn.disabled = false;
         }
     }
 
@@ -268,21 +453,50 @@ document.addEventListener("DOMContentLoaded", () => {
             SelectedServices: srvs,
             PaymentMethodId: orderState.paymentMethodId,
             PromoCodeId: orderState.promoCodeId
-        };
+        }; // ТУТ ВЖЕ ПРАВИЛЬНО ЗАКРИТО ОБ'ЄКТ!
+
+        let activePickup = document.getElementById('ui-active-pickup');
+        let activeDropoff = document.getElementById('ui-active-dropoff');
+        let activePrice = document.getElementById('ui-active-price');
+
+        if (activePickup) activePickup.innerText = payload.Pickup;
+        if (activeDropoff) activeDropoff.innerText = payload.Dropoff;
+        if (activePrice) activePrice.innerText = payload.FinalPrice + " ₴";
+
+        let btnOrder = document.getElementById('btn-order');
+        let originalBtnContent = btnOrder.innerHTML;
+        btnOrder.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Обробка...';
+        btnOrder.disabled = true;
 
         let res = await fetch('/Client/Dashboard/CreateOrder', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
+            method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
         });
         let data = await res.json();
 
         if (data.success) {
             currentOrderId = data.orderId;
+
+            if (payload.PaymentMethodId === 2) {
+                btnOrder.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Перехід до оплати...';
+
+                let payRes = await fetch(`/Client/Dashboard/PayOrder?orderId=${currentOrderId}`, { method: 'POST' });
+                let payData = await payRes.json();
+
+                if (payData.success) {
+                    window.location.href = payData.url;
+                    return;
+                } else {
+                    alert("Помилка шлюзу: " + payData.message);
+                }
+            }
+
             currentStatusId = 1;
             document.getElementById('panel-order').classList.add('d-none');
             document.getElementById('panel-searching').classList.remove('d-none');
             pollInterval = setInterval(checkStatus, 1000);
+
+            btnOrder.innerHTML = originalBtnContent;
+            btnOrder.disabled = false;
         }
     });
 
@@ -292,7 +506,10 @@ document.addEventListener("DOMContentLoaded", () => {
         let data = await res.json();
 
         if (data.success) {
-            if (data.statusId == 2 && currentStatusId !== 2) {
+            if (data.statusId == 1 && currentStatusId == 9) {
+                currentStatusId = 1;
+            }
+            else if (data.statusId == 2 && currentStatusId !== 2) {
                 currentStatusId = 2;
                 document.getElementById('panel-searching').classList.add('d-none');
                 document.getElementById('panel-active-ride').classList.remove('d-none');
@@ -329,7 +546,6 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         }
     }
-    
 
     function startRideSimulation() {
         isAnimationStarted = true;
@@ -402,13 +618,121 @@ document.addEventListener("DOMContentLoaded", () => {
         requestAnimationFrame(animate);
     }
 
-    document.querySelectorAll('.star-icon').forEach(star => {
+    let clientSelectedRating = 5;
+
+    document.querySelectorAll('#client-rating-stars .star-icon').forEach(star => {
         star.addEventListener('click', function () {
-            let val = parseInt(this.getAttribute('data-val'));
-            document.querySelectorAll('.star-icon').forEach((s, idx) => {
-                if (idx < val) s.classList.add('active');
-                else s.classList.remove('active');
+            clientSelectedRating = parseInt(this.getAttribute('data-val'));
+            document.querySelectorAll('#client-rating-stars .star-icon').forEach((s, idx) => {
+                if (idx < clientSelectedRating) {
+                    s.className = 'fa-solid fa-star star-icon cursor-pointer text-warning';
+                } else {
+                    s.className = 'fa-regular fa-star star-icon cursor-pointer text-muted';
+                }
             });
         });
     });
+
+    window.submitClientReview = function () {
+        if (!currentOrderId) {
+            location.reload();
+            return;
+        }
+
+        const comment = document.getElementById('review-comment')?.value || "";
+        const blockCheckbox = document.getElementById('blockDriverCheck');
+        const isBlockedValue = (blockCheckbox && blockCheckbox.checked) ? "true" : "false";
+        fetch(`/Client/Dashboard/SubmitReview?orderId=${currentOrderId}&rating=${clientSelectedRating}&comment=${encodeURIComponent(comment)}&isBlocked=${isBlockedValue}`, {
+            method: 'POST'
+        })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success === false && data.message) {
+                    alert(data.message);
+                } else {
+                    location.reload();
+                }
+            })
+            .catch(err => {
+                alert("Помилка відправки: " + err);
+                location.reload();
+            });
+    }
+
+    const activeRidePanel = document.getElementById('panel-active-ride');
+
+    document.getElementById('sheet-toggle')?.addEventListener('click', () => {
+        activeRidePanel?.classList.toggle('expanded');
+    });
+
+    document.getElementById('sheet-header-content')?.addEventListener('click', () => {
+        activeRidePanel?.classList.toggle('expanded');
+    });
+
+    async function handleAddressInput(inputId, isPickup) {
+        let inputEl = document.getElementById(inputId);
+        if (!inputEl) return;
+        let address = inputEl.value.trim();
+        if (address.length < 3) return;
+
+        let originalIcon = inputEl.previousElementSibling.className;
+        inputEl.previousElementSibling.className = "fa-solid fa-spinner fa-spin text-warning";
+
+        let coords = await geocodeAddress(address);
+
+        inputEl.previousElementSibling.className = originalIcon;
+
+        if (coords) {
+            map.setView(coords, 14);
+            if (isPickup) {
+                if (markerA) map.removeLayer(markerA);
+                markerA = L.marker(coords, { icon: createDot('#10b981') }).addTo(map);
+            } else {
+                if (markerB) map.removeLayer(markerB);
+                markerB = L.marker(coords, { icon: createDot('#ef4444') }).addTo(map);
+            }
+
+            if (markerA && markerB) {
+                document.getElementById('ui-pickup-text').innerText = document.getElementById('pickup').value;
+                document.getElementById('ui-dropoff-text').innerText = document.getElementById('dropoff').value;
+                drawRouteAndShowPanel();
+            }
+        } else {
+            alert("Адресу не знайдено! Спробуйте уточнити.");
+        }
+    }
+
+    document.getElementById('pickup')?.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') handleAddressInput('pickup', true);
+    });
+
+    document.getElementById('dropoff')?.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') handleAddressInput('dropoff', false);
+    });
+
+    window.applySavedAddress = function (addressText) {
+        let dropoffInput = document.getElementById('dropoff');
+        if (dropoffInput) {
+            dropoffInput.value = addressText;
+            handleAddressInput('dropoff', false);
+        }
+    }
+
+    window.changeCity = async function (id, name, newMultiplier) {
+        let res = await fetch(`/Client/Dashboard/ChangeCity?cityId=${id}`, { method: 'POST' });
+        if (res.ok) {
+            currentCityName = name;
+            document.getElementById('currentCityName').value = name;
+            document.getElementById('ui-current-city').innerText = name;
+
+            multiplier = newMultiplier;
+
+            document.getElementById('modal-city').classList.add('d-none');
+
+            let coords = await geocodeAddress(name);
+            if (coords) map.flyTo(coords, 12, { animate: true, duration: 1.5 });
+
+            if (orderState.classId) calculateTotal();
+        }
+    }
 });

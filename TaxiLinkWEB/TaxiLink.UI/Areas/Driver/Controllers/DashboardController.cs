@@ -30,6 +30,9 @@ namespace TaxiLink.UI.Areas.Driver.Controllers
         private readonly IRoutingService _routingService;
         private readonly ICurrencyService _currencyService;
         private readonly IWeatherService _weatherService;
+        private readonly IGenericRepository<City> _cityRepo;
+        private readonly IGenericRepository<Blacklist> _blacklistRepo;
+        private readonly IConfiguration _config;
 
         public DashboardController(
             IDriverService driverService,
@@ -50,7 +53,10 @@ namespace TaxiLink.UI.Areas.Driver.Controllers
             IGeocodingService geocodingService,
             IRoutingService routingService,
             ICurrencyService currencyService,
-            IWeatherService weatherService)
+            IWeatherService weatherService,
+            IGenericRepository<City> cityRepo,
+            IGenericRepository<Blacklist> blacklistRepo,
+            IConfiguration config)
             : base(driverService)
         {
             _driverRepo = driverRepo;
@@ -71,6 +77,9 @@ namespace TaxiLink.UI.Areas.Driver.Controllers
             _routingService = routingService;
             _currencyService = currencyService;
             _weatherService = weatherService;
+            _cityRepo = cityRepo;
+            _blacklistRepo = blacklistRepo;
+            _config = config;
         }
 
         private void SetLayoutData(TaxiLink.Domain.Models.Driver d)
@@ -80,6 +89,11 @@ namespace TaxiLink.UI.Areas.Driver.Controllers
             ViewBag.Rating = d.User?.Rating ?? 5.0m;
             ViewBag.IsVerified = d.IsVerified;
             ViewBag.AvatarPath = d.User?.AvatarPath;
+            var allCities = _cityRepo.GetAllAsync().GetAwaiter().GetResult();
+            var currentCity = allCities.FirstOrDefault(c => c.Id == (d.User?.DefaultCityId ?? 1)) ?? allCities.FirstOrDefault();
+
+            ViewBag.AvailableCities = allCities;
+            ViewBag.CurrentCity = currentCity;
         }
 
         [HttpGet]
@@ -326,12 +340,20 @@ namespace TaxiLink.UI.Areas.Driver.Controllers
             var allServices = await _serviceRepo.GetAllAsync();
             var allUsers = await _userRepo.GetAllAsync();
 
+            var allBlacklistsList = (await _blacklistRepo.GetAllAsync()).ToList();
+
+            var blockedByUserIds = allBlacklistsList
+                .Where(b => b.BlockerUserId == details.UserId || b.BlockedUserId == details.UserId)
+                .Select(b => b.BlockerUserId == details.UserId ? b.BlockedUserId : b.BlockerUserId)
+                .ToList();
+
+            int driverCityId = details.User?.DefaultCityId ?? 1;
             var driverOrders = allOrders
-                .Where(o => o.DriverId == null || o.DriverId == _currentDriver.Id)
+                .Where(o => (o.DriverId == null || o.DriverId == _currentDriver.Id) && o.CityId == driverCityId)
+                .Where(o => !blockedByUserIds.Contains(o.UserId)) 
                 .OrderByDescending(o => o.CreatedAt)
                 .Select(o => {
                     var passenger = allUsers.FirstOrDefault(u => u.Id == o.UserId);
-
                     string pName = !string.IsNullOrEmpty(o.PassengerName) ? o.PassengerName : passenger?.FirstName ?? "Клієнт";
 
                     var srvIds = o.OrderAdditionalServices?.Select(x => x.AdditionalServiceId).ToList();
@@ -360,7 +382,24 @@ namespace TaxiLink.UI.Areas.Driver.Controllers
 
             return View(driverOrders);
         }
-
+        [HttpPost]
+        public async Task<IActionResult> ChangeCity(int cityId)
+        {
+            var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
+            if (userIdClaim != null)
+            {
+                int userId = int.Parse(userIdClaim.Value);
+                var user = await _userRepo.GetByIdAsync(userId);
+                if (user != null)
+                {
+                    user.DefaultCityId = cityId;
+                    _userRepo.Update(user);
+                    await _userRepo.SaveChangesAsync();
+                    return Json(new { success = true });
+                }
+            }
+            return Json(new { success = false });
+        }
         [HttpGet]
         public async Task<IActionResult> Work()
         {
@@ -519,19 +558,88 @@ namespace TaxiLink.UI.Areas.Driver.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> RefillWallet(decimal amount)
+        public async Task<IActionResult> RefillWalletPay(decimal amount)
         {
             if (_currentDriver == null || amount <= 0)
                 return Json(new { success = false, message = "Некоректна сума" });
+
             var driver = await _driverRepo.GetByIdAsync(_currentDriver.Id);
-            if (driver != null)
+            if (driver == null) return Json(new { success = false });
+
+            var payload = new
             {
-                driver.WalletBalance += amount;
-                _driverRepo.Update(driver);
-                await _driverRepo.SaveChangesAsync();
-                return Json(new { success = true, newBalance = driver.WalletBalance.ToString("N2") });
+                amount = (int)(amount * 100), 
+                ccy = 980,
+                merchantPaymInfo = new
+                {
+                    reference = $"REFILL_DRIVER_{driver.Id}",
+                    destination = $"Поповнення балансу гаманця TaxiLink (Водій #{driver.Id})"
+                },
+                redirectUrl = Url.Action("PaymentCallback", "Dashboard", new { area = "Driver", refillAmount = amount }, Request.Scheme),
+                webHookUrl = Url.Action("MonoWebhook", "Dashboard", new { area = "Driver" }, Request.Scheme)
+            };
+
+            using var client = new HttpClient();
+            client.DefaultRequestHeaders.Add("X-Token", _config["Monobank:Token"]);
+            var response = await client.PostAsJsonAsync("https://api.monobank.ua/api/merchant/invoice/create", payload);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>();
+                string pageUrl = result.GetProperty("pageUrl").GetString();
+                return Json(new { success = true, url = pageUrl });
             }
-            return Json(new { success = false });
+
+            return Json(new { success = false, message = "Помилка генерації платежу Monobank" });
+        }
+        [HttpGet]
+        public async Task<IActionResult> PaymentCallback(decimal? refillAmount)
+        {
+            if (refillAmount.HasValue && refillAmount.Value > 0 && _currentDriver != null)
+            {
+                var driver = await _driverRepo.GetByIdAsync(_currentDriver.Id);
+                if (driver != null)
+                {
+                    driver.WalletBalance += refillAmount.Value;
+                    _driverRepo.Update(driver);
+                    await _driverRepo.SaveChangesAsync();
+                }
+            }
+
+            return RedirectToAction("Wallet", "Dashboard", new { area = "Driver" });
+        }
+
+        [HttpPost]
+        [AllowAnonymous]
+        public async Task<IActionResult> MonoWebhook([FromBody] System.Text.Json.JsonElement data)
+        {
+            try
+            {
+                string status = data.GetProperty("status").GetString();
+                string reference = data.GetProperty("reference").GetString();
+
+                if ((status == "success" || status == "approved") && reference.StartsWith("REFILL_DRIVER_"))
+                {
+                    string driverIdStr = reference.Replace("REFILL_DRIVER_", "");
+                    if (int.TryParse(driverIdStr, out int driverId))
+                    {
+                        var driver = await _driverRepo.GetByIdAsync(driverId);
+                        if (driver != null)
+                        {
+                            decimal amount = data.GetProperty("amount").GetInt32() / 100m;
+
+                            driver.WalletBalance += amount;
+                            _driverRepo.Update(driver);
+                            await _driverRepo.SaveChangesAsync();
+                        }
+                    }
+                }
+                return Ok();
+            }
+            catch
+            {
+                return BadRequest();
+            }
         }
 
         [HttpPost]
@@ -631,18 +739,41 @@ namespace TaxiLink.UI.Areas.Driver.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> FinishOrder(int orderId, int rating)
+        public async Task<IActionResult> FinishOrder(int orderId, int rating, bool isBlocked = false)
         {
-            var order = await _orderRepo.GetByIdAsync(orderId);
-            var passenger = await _userRepo.GetByIdAsync(order.UserId);
-
-            if (order != null && passenger != null)
+            try
             {
-                passenger.Rating = (passenger.Rating + rating) / 2;
-                _userRepo.Update(passenger);
-                return await CompleteRide(orderId);
+                var order = await _orderRepo.GetByIdAsync(orderId);
+                var passenger = await _userRepo.GetByIdAsync(order.UserId);
+                var driver = await _driverRepo.GetByIdAsync(_currentDriver.Id);
+
+                if (order != null && passenger != null && driver != null)
+                {
+                    passenger.Rating = (passenger.Rating + rating) / 2;
+                    _userRepo.Update(passenger);
+
+                    if (isBlocked)
+                    {
+                        var blacklistRecord = new TaxiLink.Domain.Models.Blacklist
+                        {
+                            BlockerUserId = driver.UserId,
+                            BlockedUserId = passenger.Id,
+                            BlockedAt = DateTime.Now
+                        };
+                        await _blacklistRepo.AddAsync(blacklistRecord);
+
+                        await _blacklistRepo.SaveChangesAsync();
+                    }
+
+                    return await CompleteRide(orderId);
+                }
+                return Json(new { success = false, message = "Дані не знайдено" });
             }
-            return Json(new { success = false });
+            catch (Exception ex)
+            {
+                string errorMsg = ex.InnerException != null ? ex.InnerException.Message : ex.Message;
+                return Json(new { success = false, message = "Помилка БД: " + errorMsg });
+            }
         }
 
         [HttpPost]

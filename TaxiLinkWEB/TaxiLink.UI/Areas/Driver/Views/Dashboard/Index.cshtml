@@ -41,20 +41,23 @@
     }
 
     @@keyframes pulse {
-        0% {
-            transform: scale(1);
-            box-shadow: 0 0 0 0 rgba(250, 204, 21, 0.7);
-        }
+        0%
 
-        70% {
-            transform: scale(1.2);
-            box-shadow: 0 0 0 15px rgba(250, 204, 21, 0);
-        }
+    {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(250, 204, 21, 0.7);
+    }
 
-        100% {
-            transform: scale(1);
-            box-shadow: 0 0 0 0 rgba(250, 204, 21, 0);
-        }
+    70% {
+        transform: scale(1.2);
+        box-shadow: 0 0 0 15px rgba(250, 204, 21, 0);
+    }
+
+    100% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(250, 204, 21, 0);
+    }
+
     }
 
     .custom-car-marker {
@@ -67,8 +70,9 @@
     }
 </style>
 
-<div class="dashboard-wrapper">
+<input type="hidden" id="currentCityName" value="@(ViewBag.CurrentCity?.Name ?? "Київ")" />
 
+<div class="dashboard-wrapper">
     @if (!Model.IsVerified)
     {
         <div class="alert alert-warning d-flex align-items-center m-0" style="background: rgba(250, 204, 21, 0.1); border: 1px solid rgba(250, 204, 21, 0.2); color: var(--accent-yellow); border-radius: 12px; padding: 15px 20px; flex-shrink: 0;">
@@ -80,6 +84,12 @@
     <div class="dashboard-content">
         <div class="map-section glass-card p-0">
             <div id="map" style="width: 100%; height: 100%; flex: 1;"></div>
+
+            <div style="position: absolute; top: 20px; left: 20px; z-index: 1000;">
+                <button onclick="document.getElementById('modal-city').classList.remove('d-none');" style="background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(255,255,255,0.1); color: white; padding: 10px 20px; border-radius: 50px; backdrop-filter: blur(10px); font-weight: bold; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">
+                    <i class="fa-solid fa-location-dot text-warning me-2"></i> <span id="ui-current-city">@(ViewBag.CurrentCity?.Name ?? "Київ")</span>
+                </button>
+            </div>
 
             @if (!Model.IsVerified)
             {
@@ -139,17 +149,43 @@
     </div>
 </div>
 
+<div id="modal-city" class="floating-panel center-screen panel-large d-none" style="z-index: 9999; max-width: 400px; width: 90%;">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h4 class="m-0 fw-bold text-white">Змінити місто</h4>
+        <button onclick="document.getElementById('modal-city').classList.add('d-none')" class="icon-btn" style="background:transparent; border:none; color:white; font-size:20px;"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+
+    <div class="glass-card-inner mb-4 p-0 overflow-hidden">
+        @if (ViewBag.AvailableCities != null)
+        {
+            foreach (var city in ViewBag.AvailableCities)
+            {
+                <label class="d-flex align-items-center p-4 border-bottom service-label" style="border-color: rgba(255,255,255,0.05) !important; cursor: pointer; margin: 0;" onclick="driverChangeCity(@city.Id, '@city.Name')">
+                    <div class="radio-custom me-3" style="width: 24px; height: 24px; border-radius: 50%; border: 2px solid #334155; position: relative; display: flex; align-items: center; justify-content: center;">
+                        <input type="radio" name="city_selection" value="@city.Id" @(ViewBag.CurrentCity?.Id == city.Id ? "checked" : "") style="opacity: 0; position: absolute;">
+                        <span class="radio-mark" style="width: 14px; height: 14px; background: var(--accent); border-radius: 50%; display: @(ViewBag.CurrentCity?.Id == city.Id ? "block" : "none");"></span>
+                    </div>
+                    <div>
+                        <span class="fw-bold text-white fs-5">@city.Name</span>
+                    </div>
+                </label>
+            }
+        }
+    </div>
+</div>
+
 @section Scripts {
     <script>
         document.addEventListener("DOMContentLoaded", function () {
             var container = L.DomUtil.get('map');
-            if(container != null){
-                container._leaflet_id = null;
-            }
+            if(container != null){ container._leaflet_id = null; }
+
+            let currentCityName = document.getElementById('currentCityName')?.value || 'Київ';
+
             setTimeout(() => {
                 var isUnverified = @((!Model.IsVerified).ToString().ToLower());
 
-                var map = L.map('map', {
+                window.driverMap = L.map('map', {
                     zoomControl: !isUnverified,
                     dragging: !isUnverified,
                     scrollWheelZoom: !isUnverified
@@ -157,19 +193,68 @@
 
                 L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
                     attribution: '&copy; OpenStreetMap'
-                }).addTo(map);
+                }).addTo(window.driverMap);
+                async function geocodeCityAndCenter(cityName) {
+                    try {
+                        let res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(cityName + ', Україна')}`);
+                        let data = await res.json();
+                        if (data && data.length > 0) {
+                            let lat = parseFloat(data[0].lat);
+                            let lon = parseFloat(data[0].lon);
 
-                if (!isUnverified) {
-                    var carIcon = L.divIcon({
-                        className: 'custom-car-marker',
-                        html: '<div style="width: 20px; height: 20px; background: #FFCC00; border-radius: 50%; border: 3px solid #1e293b; box-shadow: 0 0 15px rgba(255, 204, 0, 0.8);"></div>',
-                        iconSize: [20, 20],
-                        iconAnchor: [10, 10]
-                    });
-                    L.marker([50.4501, 30.5234], {icon: carIcon}).addTo(map);
+                            window.driverMap.flyTo([lat, lon], 12, { animate: true, duration: 1.5 });
+
+                            if (!isUnverified) {
+                                var carIcon = L.divIcon({
+                                    className: 'custom-car-marker',
+                                    html: '<div style="width: 20px; height: 20px; background: #FFCC00; border-radius: 50%; border: 3px solid #1e293b; box-shadow: 0 0 15px rgba(255, 204, 0, 0.8);"></div>',
+                                    iconSize: [20, 20],
+                                    iconAnchor: [10, 10]
+                                });
+                                L.marker([lat, lon], {icon: carIcon}).addTo(window.driverMap);
+                                updateWeather(lat, lon);
+                            }
+                        }
+                    } catch {}
                 }
 
-                map.invalidateSize();
+                function updateWeather(lat, lon) {
+                    fetch(`/Driver/Dashboard/GetCurrentWeather?lat=${lat}&lon=${lon}`)
+                        .then(res => res.json())
+                        .then(wData => {
+                            if (wData.success) {
+                                const wWidget = document.getElementById('index-weather-widget');
+                                if (wWidget) {
+                                    let icon = "☀️";
+                                    if (wData.condition.includes("Дощ") || wData.condition.includes("Мряка")) icon = "🌧️";
+                                    if (wData.condition.includes("Сніг")) icon = "❄️";
+                                    if (wData.condition.includes("Гроза")) icon = "⚡";
+
+                                    document.getElementById('index-weather-icon').innerText = icon;
+                                    document.getElementById('index-weather-text').innerText = wData.condition;
+                                    document.getElementById('index-weather-coef').innerText = `Коефіцієнт: x${wData.multiplier.toFixed(1)}`;
+                                    wWidget.style.display = "flex";
+                                }
+                            }
+                        });
+                }
+                geocodeCityAndCenter(currentCityName);
+
+                window.driverMap.invalidateSize();
+                window.driverChangeCity = async function(id, name) {
+                    let res = await fetch(`/Driver/Dashboard/ChangeCity?cityId=${id}`, { method: 'POST' });
+                    if (res.ok) {
+                        document.getElementById('ui-current-city').innerText = name;
+                        document.getElementById('currentCityName').value = name;
+                        document.getElementById('modal-city').classList.add('d-none');
+                        document.querySelectorAll('input[name="city_selection"]').forEach(el => {
+                            el.checked = (el.value == id);
+                            el.nextElementSibling.style.display = (el.value == id) ? 'block' : 'none';
+                        });
+
+                        geocodeCityAndCenter(name);
+                    }
+                };
             }, 500);
         });
     </script>
